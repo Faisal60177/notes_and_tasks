@@ -15,7 +15,7 @@ class TodoListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('আমার Tasks'),
+        title: const Text('My Tasks'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -45,7 +45,7 @@ class TodoListScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Obx(() => Text(
-                      '${(controller.completionRate.value * 100).toInt()}% সম্পন্ন',
+                      '${(controller.completionRate.value * 100).toInt()}% completed',
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     )),
                     const SizedBox(height: 6),
@@ -73,8 +73,8 @@ class TodoListScreen extends StatelessWidget {
                     ? Icons.search_off
                     : Icons.checklist,
                 message: controller.isSearching.value
-                    ? 'কোনো task পাওয়া যায়নি'
-                    : 'এখনো কোনো task নেই\n+ বাটন চেপে যোগ করুন',
+                    ? 'No tasks found'
+                    : 'No tasks yet\nTap + to add a new task',
               )
                   : ListView.builder(
                 itemCount: todos.length,
@@ -106,17 +106,17 @@ class TodoListScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Task খুঁজুন'),
+        title: const Text('Search Tasks'),
         content: TextField(
           controller: searchCtrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'শিরোনাম দিয়ে খুঁজুন...'),
+          decoration: const InputDecoration(hintText: 'Search by title...'),
           onChanged: (v) => controller.searchTodos(v),
         ),
         actions: [
           TextButton(
             onPressed: () { controller.clearSearch(); Get.back(); },
-            child: const Text('বাতিল'),
+            child: const Text('Cancel'),
           ),
         ],
       ),

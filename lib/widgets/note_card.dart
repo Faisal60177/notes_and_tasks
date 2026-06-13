@@ -11,13 +11,13 @@ class NoteCard extends StatelessWidget{
   final VoidCallback onDelete;   // delete icon
   final VoidCallback onEdit;     // edit icon
 
-const NoteCard({
+  const NoteCard({
     super.key,
-  required this.note,
-  required this.onTap,
-  required this.onDelete,
-  required this.onEdit,
-})
+    required this.note,
+    required this.onTap,
+    required this.onDelete,
+    required this.onEdit,
+  });
 
 
   @override
@@ -34,15 +34,15 @@ const NoteCard({
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: cardColor.withOpacity(0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            )
-          ]
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: cardColor.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              )
+            ]
         ),
 
         child: Padding(

@@ -18,7 +18,7 @@ class NotesListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('আমার Notes'),
+        title: const Text('My  Notes'),
         actions: [
           // Search button
           IconButton(
@@ -50,8 +50,8 @@ class NotesListScreen extends StatelessWidget {
                 ? Icons.search_off
                 : Icons.note_add,
             message: controller.isSearching.value
-                ? 'কোনো note পাওয়া যায়নি'
-                : 'এখনো কোনো note নেই\n+ বাটন চেপে যোগ করুন',
+                ? 'No notes found'
+                : 'No notes yet\nTap + to add a new note',
           );
         }
 
@@ -91,12 +91,12 @@ class NotesListScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Note খুঁজুন'),
+        title: const Text('Search Notes'),
         content: TextField(
           controller: searchController,
           autofocus: true, // dialog খুলতেই keyboard আসবে
           decoration: const InputDecoration(
-            hintText: 'শিরোনাম বা লেখা দিয়ে খুঁজুন...',
+            hintText: 'Search by title or content...',
             prefixIcon: Icon(Icons.search),
           ),
           onChanged: (value) => controller.searchNotes(value),
@@ -107,7 +107,7 @@ class NotesListScreen extends StatelessWidget {
               controller.clearSearch();
               Get.back();
             },
-            child: const Text('বাতিল'),
+            child: const Text('Cancel'),
           ),
         ],
       ),

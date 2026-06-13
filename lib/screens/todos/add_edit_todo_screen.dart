@@ -78,7 +78,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       );
     }
 
-    Get.back();
+    if (mounted) Get.back();
   }
 
   @override
@@ -87,7 +87,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Task সম্পাদনা' : 'নতুন Task'),
+        title: Text(isEditing ? 'Edit Task' : 'New Task'),
         actions: [
           IconButton(icon: const Icon(Icons.save_outlined), onPressed: _saveTodo),
         ],
@@ -105,11 +105,11 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  labelText: 'Task এর শিরোনাম',
+                  labelText: 'Task Title',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.task_alt),
                 ),
-                validator: (v) => v!.trim().isEmpty ? 'শিরোনাম দিন' : null,
+                validator: (v) => v!.trim().isEmpty ? 'Please enter a title' : null,
               ),
 
               const SizedBox(height: 16),
@@ -118,7 +118,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               TextFormField(
                 controller: _descController,
                 decoration: const InputDecoration(
-                  labelText: 'বিবরণ (ঐচ্ছিক)',
+                  labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.description_outlined),
                 ),
@@ -128,15 +128,15 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               const SizedBox(height: 20),
 
               // Priority selection
-              const Text('গুরুত্ব:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Priority :', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
 
               // SegmentedButton — Flutter এর built-in grouped button
               SegmentedButton<int>(
                 segments: const [
-                  ButtonSegment(value: 1, label: Text('জরুরি'), icon: Icon(Icons.priority_high)),
-                  ButtonSegment(value: 2, label: Text('মাঝারি'), icon: Icon(Icons.remove)),
-                  ButtonSegment(value: 3, label: Text('কম'), icon: Icon(Icons.low_priority)),
+                  ButtonSegment(value: 1, label: Text('High'), icon: Icon(Icons.priority_high)),
+                  ButtonSegment(value: 2, label: Text('Medium'), icon: Icon(Icons.remove)),
+                  ButtonSegment(value: 3, label: Text('Low'), icon: Icon(Icons.low_priority)),
                 ],
                 selected: {_selectedPriority}, // Set এ রাখতে হয়
                 onSelectionChanged: (newSet) {
@@ -147,7 +147,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               const SizedBox(height: 20),
 
               // Due date picker
-              const Text('শেষ তারিখ:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Due Date:', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
 
               Row(
@@ -156,7 +156,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _pickDate,
                       icon: const Icon(Icons.calendar_today),
-                      label: Text(_selectedDueDate ?? 'তারিখ বেছে নিন'),
+                      label: Text(_selectedDueDate ?? 'Pick a Date'),
                     ),
                   ),
                   if (_selectedDueDate != null)
@@ -175,7 +175,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _saveTodo,
                   icon: const Icon(Icons.save),
-                  label: Text(isEditing ? 'আপডেট করুন' : 'সংরক্ষণ করুন'),
+                  label: Text(isEditing ? 'Update' : 'Save'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),

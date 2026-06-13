@@ -15,36 +15,38 @@ class DbHelper {
     return _database!;
   }
 
-  Future<Database> _initDB()async{
+  Future<Database> _initDB() async {
     String dbPath = await getDatabasesPath();
-    String path= join(dbPath, 'notes_app.db');
-    return await openDatabase(path,
-    version: 1,
-      onCreate: (db, version) async {
-      await db.execute('''
-      CREATE TABLE notes(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      color INTEGER NOT NULL, 
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
-     
-      )
-      ''');
+    String path = join(dbPath, 'notes_app.db');
 
-      await db.execute('''
-        CREATE TABLE todos(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        isDone INTEGER NULL DEFAULT 0,
-        priority INTEGER NULL DEFAULT 2,
-        dueDate TEXT,
-        createdAt TEXT NOT NULL,
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        // Notes table
+        await db.execute('''
+        CREATE TABLE notes(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          color INTEGER NOT NULL,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL
         )
       ''');
 
+        // Todos table
+        await db.execute('''
+        CREATE TABLE todos(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          isDone INTEGER NOT NULL DEFAULT 0,
+          priority INTEGER NOT NULL DEFAULT 2,
+          dueDate TEXT,
+          createdAt TEXT NOT NULL
+        )
+      ''');
       },
     );
   }
@@ -92,7 +94,7 @@ Future<List<NoteModel>> searchNotes(String keyword) async{
     final maps = await db.query('notes',
       // LIKE — partial match so used this %
       where: 'title LIKE ? OR content LIKE?',
-      whereArgs: ['%$keyword%', '%$keyword'],
+      whereArgs: ['%$keyword%', '%$keyword%'],
     );
     return maps.map((map) => NoteModel.fromMap(map)).toList();
 }

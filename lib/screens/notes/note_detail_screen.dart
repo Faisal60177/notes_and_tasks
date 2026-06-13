@@ -41,10 +41,10 @@ class NoteDetailScreen extends StatelessWidget {
             onPressed: () {
               // Delete confirm করো
               Get.defaultDialog(
-                title: 'মুছে ফেলবেন?',
-                middleText: '"${note.title}" মুছে যাবে।',
-                textConfirm: 'হ্যাঁ',
-                textCancel: 'না',
+                title: 'Delete?',
+                middleText: '"${note.title}" Will be deleted',
+                textConfirm: 'Yes',
+                textCancel: 'No',
                 onConfirm: () {
                   controller.deleteNote(note);
                   Get.back(); // dialog বন্ধ
@@ -76,7 +76,7 @@ class NoteDetailScreen extends StatelessWidget {
 
             // তারিখ
             Text(
-              'আপডেট: ${note.updatedAt}',
+              'Updated: ${note.updatedAt}',
               style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
             ),
 

@@ -55,20 +55,16 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
     super.dispose();
   }
 
-  // Save button চাপলে এই function চলবে
   Future<void> _saveNote() async {
-    // Form validate করো — সব field ঠিকঠাক কিনা দেখো
     if (!_formKey.currentState!.validate()) return;
 
     if (widget.existingNote == null) {
-      // নতুন note যোগ করো
       await _noteController.addNote(
-        title: _titleController.text.trim(), // trim() — আগে পরে space সরাও
+        title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         color: _selectedColor,
       );
     } else {
-      // আগের note আপডেট করো
       await _noteController.updateNote(
         note: widget.existingNote!,
         title: _titleController.text.trim(),
@@ -77,7 +73,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       );
     }
 
-    Get.back(); // আগের screen এ ফিরে যাও
+    if (mounted) Get.back();
   }
 
   @override
@@ -89,13 +85,13 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
       appBar: AppBar(
         backgroundColor: Color(_selectedColor),
         elevation: 0,
-        title: Text(isEditing ? 'Note সম্পাদনা' : 'নতুন Note'),
+        title: Text(isEditing ? 'Edit Note' : 'New Note'),
         actions: [
           // Save button AppBar এ
           IconButton(
             icon: const Icon(Icons.save_outlined),
             onPressed: _saveNote,
-            tooltip: 'সংরক্ষণ করুন',
+            tooltip: 'Save',
           ),
         ],
       ),
@@ -110,7 +106,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
             children: [
 
               // Color picker
-              const Text('রঙ বেছে নিন:', style: TextStyle(fontWeight: FontWeight.w500)),
+              const Text('Pick a Color:', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               ColorPickerWidget(
                 selectedColor: _selectedColor,
@@ -128,14 +124,14 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  labelText: 'শিরোনাম',
+                  labelText: 'Title',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.title),
                 ),
                 validator: (value) {
                   // validator — field empty হলে error message দেখাও
                   if (value == null || value.trim().isEmpty) {
-                    return 'শিরোনাম দিন';
+                    return 'Please enter a title';
                   }
                   return null; // null মানে কোনো error নেই
                 },
@@ -147,7 +143,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
               TextFormField(
                 controller: _contentController,
                 decoration: const InputDecoration(
-                  labelText: 'লিখুন...',
+                  labelText: 'Write something...',
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true, // label উপরে থাকবে
                 ),
@@ -155,7 +151,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                 minLines: 8,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'কিছু লিখুন';
+                    return 'Please write something';
                   }
                   return null;
                 },
@@ -169,7 +165,7 @@ class _AddEditNoteScreenState extends State<AddEditNoteScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _saveNote,
                   icon: const Icon(Icons.save),
-                  label: Text(isEditing ? 'আপডেট করুন' : 'সংরক্ষণ করুন'),
+                  label: Text(isEditing ? 'Update' : 'Save'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
