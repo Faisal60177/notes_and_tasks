@@ -49,9 +49,71 @@ Future<void> addNote({
   );
 }
 
+Future<void> updateNote ({
+    required NoteModel note,
+  required String title,
+  required String content,
+  required int color,
+}) async {
+  String now = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
 
+  NoteModel updateNote = NoteModel(id: note.id, title: title, content: content, color: color, createdAt: note.createdAt, updatedAt: now);
+  await _dbHelper.updateNote(updateNote);
+  await loadNotes();
 
+  Get.snackbar(
+    'Success!', 'Note Updated',
+    backgroundColor: Colors.blue,
+    colorText: Colors.white,
+    snackPosition: SnackPosition.BOTTOM,
+  );
+}
 
+Future<void> deleteNote(NoteModel note) async {
+await _dbHelper.deleteNote(note.id!);
+await loadNotes();
 
+Get.snackbar(
+  'Deleted', '"${note.title}" Note Deleted',
+  backgroundColor: Colors.red,
+  colorText: Colors.white,
+  snackPosition: SnackPosition.BOTTOM,
+  mainButton: TextButton(
+    onPressed: () async {
+      // Undo again  note  insert do
+      await _dbHelper.insertNote(NoteModel(
+        title: note.title,
+        content: note.content,
+        color: note.color,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+      ));
+      await loadNotes();
+    },
+    child: const Text('Undo', style: TextStyle(color: Colors.white)),
+  ),
+);
+}
+
+  Future<void> searchNotes(String keyword) async {
+    if (keyword.isEmpty) {
+      // keyword is empty then search stop
+      isSearching.value = false;
+      filteredNotes.clear();
+      return;
+    }
+    isSearching.value = true;
+    filteredNotes.value = await _dbHelper.searchNotes(keyword);
+  }
+
+  // Search stop
+  void clearSearch() {
+    isSearching.value = false;
+    filteredNotes.clear();
+  }
 
 }
+
+
+
+
