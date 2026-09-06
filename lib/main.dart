@@ -1,33 +1,44 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'controllers/note_controller.dart';
-import 'controllers/todo_controller.dart';
-import 'screens/home_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/services/connectivity_service.dart';
+import 'features/todo/data/datasources/todo_local_datasource.dart';
+import 'features/todo/data/datasources/todo_remote_datasource.dart';
+import 'features/todo/data/repository/todo_repository.dart';
+import 'presentation/cubit/todo_cubit.dart';
+import 'presentation/pages/todo_page.dart';
 
-// App starts from here
-void main() async {
-  // async — required before WidgetsFlutterBinding
+Future<void> main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  await Firebase.initializeApp();
+
+  final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
+
+  final repository = TodoRepository(
+      local: TodoLocalDatasource(),
+      remote: TodoRemoteDatasource(userId: userId),
+      connectivity: ConnectivityService(),
+  );
+
+  runApp(MyApp(repository: repository));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatelessWidget{
+  final TodoRepository repository;
+  const MyApp({super.key, required this.repository});
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Do ALL Notes',
+    return MaterialApp(
+      title: 'Todo(Cubit)',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      initialBinding: BindingsBuilder(() {
-        Get.put(NoteController());
-        Get.put(TodoController());
-      }),
-      home: const HomeScreen(),
+      home: BlocProvider(
+        create: (_) => TodoCubit(repository)..loadTodos(),
+      child: const TodoPage(),) ,
     );
   }
+
+
 }

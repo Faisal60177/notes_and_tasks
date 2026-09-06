@@ -1,0 +1,119 @@
+import 'dart:async';
+import 'package:uuid/uuid.dart';
+
+import '../../../../core/services/connectivity_service.dart';
+import '../datasources/todo_local_datasource.dart';
+import '../datasources/todo_remote_datasource.dart';
+import '../models/todo_model.dart';
+
+class TodoRepository {
+
+  final TodoLocalDatasource _local;
+  final TodoRemoteDatasource _remote;
+  final ConnectivityService _connectivity;
+
+  StreamSubscription? _remoteSub;
+
+  TodoRepository({
+    required TodoLocalDatasource local,
+    required TodoRemoteDatasource remote,
+    required ConnectivityService connectivity,
+}) : _local = local,
+  _remote = remote,
+  _connectivity = connectivity;
+
+
+  Future<List<TodoModel>> getTodos() => _local.getAllTodos();
+
+  Future<void> addTodo({
+    required String title,
+    String? description,
+    String? category,
+    DateTime? dueDate,
+}) async {
+    final now = DateTime.now();
+    final todo = TodoModel(
+        id: const Uuid().v4(),
+        title: title,
+        description: description,
+        category: category,
+        dueDate: dueDate,
+        createdAt: now,
+        updatedAt: now,
+        isSynced: false,
+    );
+    await _local.upsertTodo(todo);
+    unawaited(_pushIfOnline(todo));
+  }
+  
+  Future<void> updateTodo(TodoModel todo) async {
+    final updated = todo.copyWith(updatedAt: DateTime.now(), isSynced: false);
+    await _local.upsertTodo(updated);
+    unawaited(_pushIfOnline(updated));
+  }
+
+  Future<void> toggleCompleted(TodoModel todo) =>
+      updateTodo(todo.copyWith(isCompleted: !todo.isCompleted));
+
+  Future<void> deleteTodo(TodoModel todo) async {
+    final now = DateTime.now();
+    await _local.softDeleteTodo(todo.id, now);
+    unawaited(_pushIfOnline(todo.copyWith(isDeleted: true, updatedAt: now)));
+  }
+
+  Future<void> _pushIfOnline(TodoModel todo) async {
+    if(await _connectivity.isOnline){
+      await _remote.pushTodo(todo);
+      await _local.markSynced(todo.id);
+    }
+  }
+
+  Future<void> syncNow() async {
+    if (!await _connectivity.isOnline) return;
+
+
+    final unsynced = await _local.getUnsyncedTodos();
+    for (final todo in unsynced) {
+      await _remote.pushTodo(todo);
+      await _local.markSynced(todo.id);
+    }
+    await _local.purgeSyncedDeletes();
+
+    final remoteTodos = await _remote.fetchAllTodos();
+    final localTodos = await _local.getAllTodos();
+
+    final localById = {for(final t in localTodos) t.id: t};
+
+    final toApply = <TodoModel>[];
+    for (final remoteTodo in remoteTodos) {
+      final localTodo = localById[remoteTodo.id];
+      if (localTodo == null ||
+          remoteTodo.updatedAt.isAfter(localTodo.updatedAt)) {
+        toApply.add(remoteTodo);
+      }
+      if (toApply.isNotEmpty) await _local.upsertMany(toApply);
+    }
+  }
+
+  void startRemoteListener(void Function() onChanged){
+      _remoteSub?.cancel();
+      _remoteSub = _remote.watchTodos().listen((remoteTodos) async {
+        final localTodos = await _local.getAllTodos();
+        final localById = {for (final t in localTodos) t.id: t};
+        final toApply = <TodoModel>[];
+        for(final remoteTodo in remoteTodos){
+          final localTodo = localById[remoteTodo.id];
+          if(localTodo == null || remoteTodo.updatedAt.isAfter(localTodo.updatedAt)) {
+            toApply.add(remoteTodo);
+          }
+        }
+        if(toApply.isNotEmpty){
+          await _local.upsertMany(toApply);
+          onChanged();
+        }
+      });
+  }
+
+  void dispose() => _remoteSub?.cancel();
+
+}
