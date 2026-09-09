@@ -58,6 +58,16 @@ class TodoLocalDatasource {
     );
   }
 
+  Future<void> restoreTodo(String id, DateTime updatedAt) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'todos',
+      {'isDeleted': 0, 'isSynced': 0, 'updatedAt': updatedAt.toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> purgeSyncedDeletes() async {
     final db = await _dbHelper.database;
     await db.delete('todos',

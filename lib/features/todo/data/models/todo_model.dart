@@ -1,11 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum TaskPriority { low, medium, high }
+
+extension TaskPriorityX on TaskPriority{
+  String get storageValue => name;
+
+  static TaskPriority fromStorage(String? value){
+    return TaskPriority.values.firstWhere(
+        (p) => p.storageValue == value,
+      orElse: ()=>TaskPriority.medium
+    );
+  }
+}
+
 class TodoModel {
   final String id;
   final String title;
   final String? description;
   final bool isCompleted;
   final String? category;
+  final TaskPriority priority;
   final DateTime? dueDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -19,6 +33,7 @@ class TodoModel {
     this.description,
     this.isCompleted = false,
     this.category,
+    this.priority = TaskPriority.medium,
     this.dueDate,
     required this.createdAt,
     required this.updatedAt,
@@ -31,6 +46,7 @@ class TodoModel {
     String? description,
     bool? isCompleted,
     String? category,
+    TaskPriority? priority,
     DateTime? dueDate,
     DateTime? updatedAt,
     bool? isSynced,
@@ -42,6 +58,7 @@ class TodoModel {
         description: description ?? this.description,
         isCompleted: isCompleted ?? this.isCompleted,
         category: category ?? this.category,
+        priority: priority ?? this.priority,
         dueDate: dueDate ?? this.dueDate,
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
@@ -54,8 +71,9 @@ class TodoModel {
     'id' : id,
     'title' : title,
     'description' : description,
-    'isCompleted' : isCompleted,
+    'isCompleted' : isCompleted ? 1 : 0,
     'category' : category,
+    'priority': priority.storageValue,
     'dueDate' : dueDate?.toIso8601String(),
     'createdAt' : createdAt.toIso8601String(),
     'updatedAt' : updatedAt.toIso8601String(),
@@ -66,9 +84,10 @@ class TodoModel {
   factory TodoModel.fromSqfliteMap(Map<String, dynamic> map) => TodoModel(
       id: map['id'] as String,
       title: map['title'] as String,
-      description: map['description'] as String,
+      description: map['description'] as String?,
       isCompleted:  (map['isCompleted'] as int) == 1,
       category: map['category'] as String?,
+    priority: TaskPriorityX.fromStorage(map['priority'] as String?),
       dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate'] as String) : null,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
@@ -81,6 +100,7 @@ class TodoModel {
     'description': description,
     'isCompleted': isCompleted,
     'category': category,
+    'priority': priority.storageValue,
     'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
     'createdAt': Timestamp.fromDate(createdAt),
     'updatedAt': Timestamp.fromDate(updatedAt),
@@ -94,6 +114,7 @@ class TodoModel {
           description: map['description'] as String?,
           isCompleted: map['isCompleted'] as bool? ?? false,
           category: map['category'] as String?,
+          priority: TaskPriorityX.fromStorage(map['priority'] as String?),
           dueDate: (map['dueDate'] as Timestamp?) ?.toDate(),
           createdAt: (map['createdAt'] as Timestamp).toDate(),
           updatedAt: (map['updatedAt'] as Timestamp).toDate(),

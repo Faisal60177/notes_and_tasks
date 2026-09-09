@@ -1,77 +1,97 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get/get.dart';
-import '../cubit/todo_cubit.dart';
-import '../cubit/todo_state.dart';
 import '../widgets/todo_tile.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:notes_app/features/todo/data/models/todo_model.dart';
+import 'package:notes_app/presentation/providers/todo_notifier.dart';
+import 'package:notes_app/presentation/widgets/add_edit_task_sheet.dart';
 
-class TodoPage  extends StatelessWidget{
+class TodoPage  extends ConsumerWidget{
 
   const TodoPage({super.key});
-
-  void _showAddDialog(BuildContext context){
-    final controller = TextEditingController();
-    showDialog(context: context,
-        builder: (dialogConext) => AlertDialog(
-          title: const Text('New Task'),
-          content: TextField(controller: controller, autofocus: true),
-          actions: [
-            TextButton(onPressed: ()=> Navigator.pop(dialogConext), child: const Text('Cancel'),),
-            FilledButton(onPressed: (){
-              if(controller.text.trim().isNotEmpty){
-                context.read<TodoCubit>().addTodo(title: controller.text.trim());
+  
+  void _openTaskSheet(BuildContext context, WidgetRef ref, {TodoModel? existingTodo}) {
+    showModalBottomSheet(context: context,
+        isScrollControlled: true,
+        builder: (_) => AddEditTaskSheet(
+            existingTodo: existingTodo,
+            onSubmit: ({required title, description, category, required priority, dueDate}){
+              final notifier = ref.read(todoProvider.notifier);
+              if(existingTodo == null){
+                notifier.addTask(
+                  title: title,
+                  description: description,
+                  category: category,
+                  priority: priority,
+                  dueDate: dueDate,
+                );
+              }else {
+                notifier.updateTask(existingTodo.copyWith(
+                  title: title,
+                  description: description,
+                  category: category,
+                  priority: priority,
+                  dueDate: dueDate,
+                ));
               }
-              Navigator.pop(dialogConext);
-            }, child: const Text('Add'),)
-          ],
-        ));
+            },
+            )
+    );
   }
 
+void _deleteWithUndo(BuildContext context, WidgetRef ref, TodoModel todo) {
+  ref.read(todoProvider.notifier).deleteTask(todo);
 
+  ScaffoldMessenger.of(context).clearSnackBars();
+  ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:Text('"${todo.title}" deleted'),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(label: 'Undo', onPressed: () => ref.read(todoProvider.notifier).restoreTask(todo),
+        ),
+  ),
+  );
+}
+  
+  
+  
+  
+
+ 
 @override
-Widget build(BuildContext context) {
+Widget build(BuildContext context, WidgetRef ref) {
+    final todoAsync = ref.watch(todoProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Task'),
         actions: [
-          BlocBuilder<TodoCubit, TodoState>(
-            builder: (context, state) => IconButton(
-              icon: state.isSyncing?
-              const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2),)
-              : const Icon(Icons.sync),
-
-
-              onPressed: () => context.read<TodoCubit>().syncNow(),),
+          IconButton(
+            icon: (todoAsync.value?.isSyncing ?? false)
+          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2),
+          )
+          : const Icon(Icons.sync),
+            onPressed: ()=> ref.read(todoProvider.notifier).syncNow(),
           )
         ],
       ),
-      body: BlocBuilder<TodoCubit, TodoState>(
-          builder: (context,state){
-            if(state.status == TodoStatus.loading){
-              return const Center(child: CircularProgressIndicator(),);
-            }
-            if (state.status == TodoStatus.error) {
-              return Center(child: Text('Error: ${state.errorMessage}'));
-            }
-            if (state.todos.isEmpty) {
-              return const Center(child: Text('No Task yet — add one!'));
-            }
-            
-            return ListView.builder(
-                itemCount: state.todos.length,
-                
-                itemBuilder: (context, index){
-                  final todo = state.todos[index];
-                  return TodoTile(
-                      todo: todo, 
-                      onToggle: ()=> context.read<TodoCubit>().toggleCompleted(todo),
-                    onDelete: () => context.read<TodoCubit>().deleteTodo(todo),
-                  );
-                }
-                );
-          }
-          ),
-      floatingActionButton: FloatingActionButton(onPressed: () => _showAddDialog(context),
+      body: todoAsync.when(loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) => Center(child: Text('Error: $error')),
+      data: (todoListState){
+        final todos = todoListState.todos;
+        if(todos.isEmpty){
+          return const Center(child: Text('No tasks yet - add one!'));
+        }
+        return ListView.builder(
+            itemCount: todos.length,
+            itemBuilder: (context, index){
+              final todo = todos[index];
+              return TodoTile(todo: todo, onToggle: ()=> ref.read(todoProvider.notifier).toggleCompleted(todo), onEdit: ()=> _openTaskSheet(context, ref, existingTodo: todo), onDelete: () => _deleteWithUndo(context, ref, todo),
+              );
+            },
+        );
+      }
+      ),
+
+      floatingActionButton: FloatingActionButton(onPressed: () => _openTaskSheet(context,ref),
       child: const Icon(Icons.add),),
     );
 }

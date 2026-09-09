@@ -3,9 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   DatabaseHelper._internal();
-
   static final DatabaseHelper instance = DatabaseHelper._internal();
-
   static Database? _db;
 
   Future<Database> get database async {
@@ -17,24 +15,52 @@ class DatabaseHelper {
   Future<Database> _initDb() async {
     final path = join(await getDatabasesPath(), 'todo_app.db');
     return openDatabase(path,
-    version: 1,
+    version: 3,
     onCreate: (db, version) async {
       await db.execute('''
-      
       CREATE TABLE todos (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
       isCompleted INTEGER NOT NULL DEFAULT 0,
       category TEXT,
+      priority TEXT NOT NULL DEFAULT 'medium',
       dueDate TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       isSynced INTEGER NOT NULL DEFAULT 0,
-      isDeleted INTEGER NOT NULL DEFAULT 0,
+      isDeleted INTEGER NOT NULL DEFAULT 0
       )
       ''');
+      await _createNotesTable(db);
     },
+      onUpgrade: (db, oldVersion, newVersion) async {
+      if(oldVersion < 2){
+        await db.execute(
+          "ALTER TABLE todos ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'",
+        );
+      }
+      if(oldVersion < 3) {
+        await _createNotesTable(db);
+      }
+      }
     );
+  }
+
+  Future<void> _createNotesTable(Database db) async {
+    await db.execute('''
+    CREATE TABLE notes (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT,
+        color TEXT NOT NULL DEFAULT 'default',
+        category TEXT,
+        isPinned INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        isSynced INTEGER NOT NULL DEFAULT 0,
+        isDeleted INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
   }
 }
