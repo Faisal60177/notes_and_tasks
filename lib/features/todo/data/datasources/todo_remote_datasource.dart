@@ -17,6 +17,11 @@ class TodoRemoteDatasource {
     await _collection.doc(todo.id).set(todo.toFirestoreMap());
   }
 
+  Future<void> deleteTodo(String id) async {
+    await _collection.doc(id).delete();
+  }
+
+
   Future<List<TodoModel>> fetchAllTodos() async {
     final snapshot = await _collection.get();
     return snapshot.docs.map(

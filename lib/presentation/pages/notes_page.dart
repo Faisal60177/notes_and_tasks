@@ -26,7 +26,7 @@ class NotesPage extends ConsumerWidget {
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'UNDO',
-          onPressed: () => ref.read(notesProvider.notifier).restoreNote(note),
+          onPressed: () => ref.read(notesProvider.notifier).undoDelete(note),
         ),
       ),
     );

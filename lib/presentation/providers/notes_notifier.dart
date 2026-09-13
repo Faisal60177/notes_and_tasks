@@ -8,6 +8,8 @@ part 'notes_notifier.g.dart';
 
 @riverpod
 class NotesNotifier extends _$NotesNotifier {
+
+  bool _hasSyncedOnce = false;
   @override
   Future<NotesListState> build() async {
     final repository = ref.watch(noteRepositoryProvider);
@@ -16,9 +18,12 @@ class NotesNotifier extends _$NotesNotifier {
       ref.invalidateSelf();
     });
 
-    final notes = await repository.getNotes();
-    Future.microtask(() => syncNow());
+    if (!_hasSyncedOnce) {
+      _hasSyncedOnce = true;
+      Future.microtask(() => syncNow());
+    }
 
+    final notes = await repository.getNotes();
     return NotesListState(notes: notes);
   }
 
@@ -51,9 +56,9 @@ class NotesNotifier extends _$NotesNotifier {
     await _reload();
   }
 
-  Future<void> restoreNote(NoteModel note) async {
+  Future<void> undoDelete(NoteModel note) async {
     final repository = ref.read(noteRepositoryProvider);
-    await repository.restoreNote(note);
+    await repository.undoDelete(note);
     await _reload();
   }
 

@@ -13,7 +13,7 @@ class TodoLocalDatasource {
       whereArgs: [0],
       orderBy: 'createdAt DESC',
     );
-    return maps.map((m) => TodoModel.fromSqfliteMap(m)).toList();
+    return maps.map((m) => TodoModel.fromSqliteMap(m)).toList();
   }
 
   Future<List<TodoModel>> getUnsyncedTodos() async{
@@ -23,7 +23,7 @@ class TodoLocalDatasource {
       where: 'isSynced = ?',
       whereArgs: [0]
     );
-    return maps.map((m) => TodoModel.fromSqfliteMap(m)).toList();
+    return maps.map((m) => TodoModel.fromSqliteMap(m)).toList();
   }
 
   Future<void> upsertTodo(TodoModel todo) async {
@@ -58,6 +58,11 @@ class TodoLocalDatasource {
     );
   }
 
+  Future<void> deleteTodo(String id) async {
+    final db = await _dbHelper.database;
+    await db.delete('todos', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<void> restoreTodo(String id, DateTime updatedAt) async {
     final db = await _dbHelper.database;
     await db.update(
@@ -80,6 +85,16 @@ class TodoLocalDatasource {
         {'isSynced': 1},
         where: 'id =? ',
         whereArgs: [id]
-        );
+    );
   }
+
+  Future<List<TodoModel>> getAllTodosIncludingDeleted() async {
+    final db = await _dbHelper.database;
+    final maps = await db.query('todos');
+    return maps.map((m) => TodoModel.fromSqliteMap(m)).toList();
+  }
+
+
+
+
 }

@@ -15,7 +15,7 @@ class DatabaseHelper {
   Future<Database> _initDb() async {
     final path = join(await getDatabasesPath(), 'todo_app.db');
     return openDatabase(path,
-    version: 3,
+    version: 1,
     onCreate: (db, version) async {
       await db.execute('''
       CREATE TABLE todos (
@@ -36,12 +36,6 @@ class DatabaseHelper {
     },
       onUpgrade: (db, oldVersion, newVersion) async {
       if(oldVersion < 2){
-        await db.execute(
-          "ALTER TABLE todos ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'",
-        );
-      }
-      if(oldVersion < 3) {
-        await _createNotesTable(db);
       }
       }
     );
@@ -63,4 +57,13 @@ class DatabaseHelper {
       )
     ''');
   }
+
+  Future<void> close() async {
+    final db = _db;
+    if (db != null) {
+      await db.close();
+      _db = null;
+    }
+  }
 }
+

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:notes_app/core/providers/core_providers.dart';
 import 'package:notes_app/features/notes/data/datasources/note_local_datasource.dart';
@@ -14,14 +15,15 @@ NoteLocalDatasource noteLocalDatasource(Ref ref) {
 
 @Riverpod(keepAlive: true)
 NoteRemoteDatasource noteRemoteDatasource(Ref ref) {
-  final authState = ref.watch(authProvider);
-  final userId = authState.isLoggedIn ? authState.uid : 'guest';
+  final userId = ref.watch(
+    authProvider.select((s) => s.isLoggedIn ? s.uid : 'guest'),
+  );
   return NoteRemoteDatasource(userId: userId);
 }
 
 @Riverpod(keepAlive: true)
 NoteRepository noteRepository(Ref ref) {
-  final isLoggedIn = ref.watch(authProvider).isLoggedIn;
+  final isLoggedIn = ref.watch(authProvider.select((s) => s.isLoggedIn));
   final repository = NoteRepository(
     local: ref.watch(noteLocalDatasourceProvider),
     remote: ref.watch(noteRemoteDatasourceProvider),

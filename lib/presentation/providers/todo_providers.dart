@@ -15,14 +15,15 @@ TodoLocalDatasource todoLocalDatasource(Ref ref) {
 
 @Riverpod(keepAlive: true)
 TodoRemoteDatasource todoRemoteDatasource(Ref ref) {
-  final authState = ref.watch(authProvider);
-  final userId = authState.isLoggedIn ? authState.uid : 'guest';
+  final userId = ref.watch(
+    authProvider.select((s) => s.isLoggedIn ? s.uid : 'guest'),
+  );
   return TodoRemoteDatasource(userId: userId);
 }
 
 @Riverpod(keepAlive: true)
 TodoRepository todoRepository(Ref ref) {
-  final isLoggedIn = ref.watch(authProvider).isLoggedIn;
+  final isLoggedIn = ref.watch(authProvider.select((s) => s.isLoggedIn));
   final repository = TodoRepository(
     local: ref.watch(todoLocalDatasourceProvider),
     remote: ref.watch(todoRemoteDatasourceProvider),

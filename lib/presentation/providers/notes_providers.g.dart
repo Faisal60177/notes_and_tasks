@@ -103,7 +103,7 @@ final class NoteRemoteDatasourceProvider
 }
 
 String _$noteRemoteDatasourceHash() =>
-    r'0c76facef17b619d64a5913e9e8fa9a490607457';
+    r'f21688210701e58f43704c41a3dec9813b6fe83e';
 
 @ProviderFor(noteRepository)
 final noteRepositoryProvider = NoteRepositoryProvider._();
@@ -144,4 +144,4 @@ final class NoteRepositoryProvider
   }
 }
 
-String _$noteRepositoryHash() => r'0be661e5d76ed4023eebe08977f4af0a9a7fecaf';
+String _$noteRepositoryHash() => r'7a3bbbeb2a5a453dfcca18ef4891c493591e0a27';

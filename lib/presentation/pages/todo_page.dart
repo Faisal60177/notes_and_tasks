@@ -46,7 +46,7 @@ void _deleteWithUndo(BuildContext context, WidgetRef ref, TodoModel todo) {
       SnackBar(
         content:Text('"${todo.title}" deleted'),
         duration: const Duration(seconds: 4),
-        action: SnackBarAction(label: 'Undo', onPressed: () => ref.read(todoProvider.notifier).restoreTask(todo),
+        action: SnackBarAction(label: 'Undo', onPressed: () => ref.read(todoProvider.notifier).undoDelete(todo),
         ),
   ),
   );

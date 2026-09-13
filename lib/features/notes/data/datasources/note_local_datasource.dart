@@ -48,6 +48,11 @@ class NoteLocalDatasource {
     );
   }
 
+  Future<void> deleteNote(String id) async {
+    final db = await _dbHelper.database;
+    await db.delete('notes', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<void> restoreNote(String id, DateTime updatedAt) async {
     final db = await _dbHelper.database;
     await db.update(
@@ -63,9 +68,16 @@ class NoteLocalDatasource {
     await db.delete('notes', where: 'isDeleted = ? AND isSynced = ?', whereArgs: [1, 1]);
   }
 
+
   Future<void> markSynced(String id) async {
     final db = await _dbHelper.database;
     await db.update('notes', {'isSynced': 1}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<NoteModel>> getAllNotesIncludingDeleted() async {
+    final db = await _dbHelper.database;
+    final maps = await db.query('notes');
+    return maps.map((m) => NoteModel.fromSqliteMap(m)).toList();
   }
 
 

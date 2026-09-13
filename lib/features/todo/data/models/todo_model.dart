@@ -81,7 +81,7 @@ class TodoModel {
     'isDeleted' : isDeleted ? 1 : 0,
   };
 
-  factory TodoModel.fromSqfliteMap(Map<String, dynamic> map) => TodoModel(
+  factory TodoModel.fromSqliteMap(Map<String, dynamic> map) => TodoModel(
       id: map['id'] as String,
       title: map['title'] as String,
       description: map['description'] as String?,

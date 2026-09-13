@@ -16,6 +16,10 @@ class NoteRemoteDatasource {
     await _collection.doc(note.id).set(note.toFirestoreMap());
   }
 
+  Future<void> deleteNote(String id) async {
+    await _collection.doc(id).delete();
+  }
+
   Future<List<NoteModel>> fetchAllNotes() async {
     final snapshot = await _collection.get();
     return snapshot.docs

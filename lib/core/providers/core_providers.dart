@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../database/database_helper.dart';
 import '../services/connectivity_service.dart';
 
-part'core_providers.g.dart';
+part 'core_providers.g.dart';
 
 @Riverpod(keepAlive : true)
 DatabaseHelper databaseHelper(Ref ref){

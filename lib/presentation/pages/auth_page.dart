@@ -113,8 +113,7 @@ class _AuthPageState extends ConsumerState<AuthPage> with SingleTickerProviderSt
     }
   }
 
-  /// আগে যেই security hole ছিল (auto-link without verification) সেটার
-  /// জায়গায় এখন এই dialog — ইউজারকে existing password verify করতে হবে।
+
   void _showLinkPasswordDialog(String email) {
     final passCtrl = TextEditingController();
     showDialog(

@@ -8,6 +8,8 @@ part 'todo_notifier.g.dart';
 
 @riverpod
 class TodoNotifier extends _$TodoNotifier {
+
+  bool _hasSyncedOnce = false;
   @override
   Future<TodoListState> build() async {
     final repository = ref.watch(todoRepositoryProvider);
@@ -16,9 +18,12 @@ class TodoNotifier extends _$TodoNotifier {
       ref.invalidateSelf();
     });
 
-    final todos = await repository.getTodos();
-    Future.microtask(() => syncNow());
+    if (!_hasSyncedOnce) {
+      _hasSyncedOnce = true;
+      Future.microtask(() => syncNow());
+    }
 
+    final todos = await repository.getTodos();
     return TodoListState(todos: todos);
   }
 
@@ -58,9 +63,9 @@ class TodoNotifier extends _$TodoNotifier {
     await _reload();
   }
 
-  Future<void> restoreTask(TodoModel todo) async {
+  Future<void> undoDelete(TodoModel todo) async {
     final repository = ref.read(todoRepositoryProvider);
-    await repository.restoreTodo(todo);
+    await repository.undoDelete(todo);
     await _reload();
   }
 
