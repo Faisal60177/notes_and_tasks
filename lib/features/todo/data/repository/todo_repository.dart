@@ -57,7 +57,7 @@ class TodoRepository {
   Future<void> toggleCompleted(TodoModel todo) =>
       updateTodo(todo.copyWith(isCompleted: !todo.isCompleted));
 
-  Future<void> deleteTodo(TodoModel todo,{
+  Future<void> deleteTodo(TodoModel todo, {
     Duration undoWindow = const Duration(seconds: 5),
   }) async {
     await _local.softDeleteTodo(todo.id, DateTime.now());

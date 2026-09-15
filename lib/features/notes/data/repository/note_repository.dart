@@ -29,6 +29,7 @@ class NoteRepository {
     String? content,
     NoteColor color = NoteColor.default_,
     String? category,
+    bool isPinned = false,
   }) async {
     final now = DateTime.now();
     final note = NoteModel(
@@ -37,6 +38,7 @@ class NoteRepository {
       content: content,
       color: color,
       category: category,
+      isPinned: isPinned,
       createdAt: now,
       updatedAt: now,
       isSynced: false,
