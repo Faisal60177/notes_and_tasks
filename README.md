@@ -1,256 +1,156 @@
-# 📝 Do ALL Notes — Flutter Notes & To-Do App
+# NoteFlow — Notes & Tasks App
 
-A full-featured **Notes + To-Do** mobile application built with Flutter, designed as a comprehensive foundation project covering core Flutter concepts including local database (SQLite), GetX state management, form validation, custom widgets, and clean folder architecture.
+An offline-first productivity app that combines rich-text note-taking and task
+management in a single, clean Flutter application. Built with a repository
+pattern, real-time Firebase sync, and a soft-delete + timed-undo pattern so
+every action feels instant and every delete is safely reversible.
 
----
-
-## 📱 Screenshots
-
-> _Add your screenshots here after building the app_
-> `![Home Screen](screenshots/home.png)`
-
----
+<!-- Add a screenshot strip here once available, e.g.: -->
+<!-- ![screenshots](docs/screenshots/banner.png) -->
 
 ## ✨ Features
 
-### 📒 Notes
-- ✅ Create, Read, Update, Delete (CRUD) notes
-- ✅ Color-coded notes with 8 color options
-- ✅ Full note detail view
-- ✅ Real-time search by title or content
-- ✅ Undo delete via Snackbar
-- ✅ Sorted by newest first
+### Notes
+- Rich-text editor powered by **flutter_quill** — bold, italic, underline,
+  strikethrough, headers, bullet/numbered lists, checklists, block quotes,
+  and inline code.
+- Category-based toolbar that switches between Text / List / Insert /
+  History tool groups to keep the writing area uncluttered.
+- Color-coded notes (8 colors) with dark-mode–aware contrast.
+- Pin important notes to the top of the list.
+- Grid and list view toggle.
+- Live word count and last-updated timestamp shown in the editor.
+- One-line content preview on note cards for quick scanning.
 
-### ✔️ To-Do Tasks
-- ✅ Create, Read, Update, Delete tasks
-- ✅ Mark tasks as done/undone with Checkbox
-- ✅ Priority levels — High / Medium / Low (color-coded)
-- ✅ Due date picker
-- ✅ Swipe to delete (Dismissible)
-- ✅ Task completion progress bar
-- ✅ Undo delete via Snackbar
-- ✅ Real-time search
+### Tasks
+- Priority levels (Low / Medium / High) with color-coded badges.
+- Optional description, category, and due date per task.
+- Checkbox-based completion with visual dimming for done tasks.
+- Priority-accent stripe on each task card for at-a-glance scanning.
 
-### 🎨 UI/UX
-- ✅ Material Design 3
-- ✅ Bottom Navigation Bar (Notes ↔ Tasks)
-- ✅ IndexedStack (preserves state on tab switch)
-- ✅ Empty state illustrations
-- ✅ Animated color picker
-- ✅ Responsive card layout
+### Data & Sync
+- **Offline-first**: every action (add/edit/delete) writes to a local
+  SQLite database first, so the app is fully usable with no connection.
+- **Two-way Firestore sync**: a background sync process pushes local
+  changes and pulls remote changes, resolving conflicts with a
+  last-write-wins strategy based on `updatedAt`.
+- **Soft-delete + timed undo**: deleting a note or task marks it
+  soft-deleted locally and shows an "Undo" snackbar. If undo isn't
+  pressed within the grace period, the item is permanently removed from
+  both SQLite and Firestore. Undoing at any point before that fully
+  restores it.
+- **Connectivity-aware**: sync attempts only run when the app detects an
+  active connection, using `connectivity_plus`.
 
----
+## 🏗️ Architecture
 
-## 🛠️ Tech Stack
-
-| Technology | Usage |
-|---|---|
-| **Flutter** | UI Framework |
-| **Dart** | Programming Language |
-| **GetX** | State Management & Navigation |
-| **SQLite (sqflite)** | Local Database |
-| **intl** | Date Formatting |
-| **path** | Database Path Resolution |
-
----
-
-## 📦 Packages Used
-
-```yaml
-dependencies:
-  get: ^4.6.6          # State management, navigation, snackbar
-  sqflite: ^2.3.2      # Local SQLite database
-  path: ^1.9.0         # Resolve database file path
-  intl: ^0.19.0        # Date formatting
-```
-
----
-
-## 📁 Folder Structure
+The app follows a **clean, layered architecture** per feature
+(`notes/` and `todo/`):
 
 ```
 lib/
-│
-├── main.dart                          # App entry point, GetX binding setup
-│
-├── models/
-│   ├── note_model.dart                # Note data class with toMap/fromMap
-│   └── todo_model.dart                # Todo data class with toMap/fromMap
-│
-├── database/
-│   └── db_helper.dart                 # SQLite Singleton — all CRUD operations
-│
-├── controllers/
-│   ├── note_controller.dart           # GetX controller for notes logic
-│   └── todo_controller.dart           # GetX controller for todos logic
-│
-├── screens/
-│   ├── home_screen.dart               # BottomNavigationBar + IndexedStack
+├── core/
+│   ├── database/          # Shared SQLite (sqflite) database helper
+│   ├── providers/         # App-wide Riverpod providers (DB, connectivity)
+│   └── services/          # ConnectivityService
+├── features/
 │   ├── notes/
-│   │   ├── notes_list_screen.dart     # Display all notes, search
-│   │   ├── add_edit_note_screen.dart  # Add or edit a note
-│   │   └── note_detail_screen.dart    # Full note view
-│   └── todos/
-│       ├── todo_list_screen.dart      # Display all tasks, progress bar
-│       └── add_edit_todo_screen.dart  # Add or edit a task
-│
-└── widgets/
-    ├── note_card.dart                 # Reusable note card widget
-    ├── todo_tile.dart                 # Reusable todo list tile
-    ├── empty_state.dart               # Empty state UI component
-    └── color_picker_widget.dart       # Horizontal animated color picker
+│   │   ├── data/
+│   │   │   ├── models/         # NoteModel + NoteColor enum
+│   │   │   ├── datasources/    # NoteLocalDatasource, NoteRemoteDatasource
+│   │   │   └── repository/     # NoteRepository (sync + undo logic)
+│   │   └── presentation/
+│   │       ├── pages/          # NotesPage, NoteEditorPage
+│   │       ├── providers/      # notesProvider (Riverpod code-gen)
+│   │       ├── widgets/        # NoteCard, NoteToolbar
+│   │       └── utils/          # color mapping, Quill Delta helpers
+│   └── todo/
+│       └── (same structure as notes/)
+└── main.dart
 ```
 
----
+**Why this structure:**
+- **Datasources** talk to exactly one storage backend (SQLite or
+  Firestore) and know nothing about each other.
+- **Repository** is the single source of truth the UI talks to — it
+  decides *when* to hit local vs. remote storage, and owns the
+  undo/sync/conflict-resolution logic.
+- **Riverpod code-gen notifiers** expose repository data as UI state,
+  keeping widgets free of business logic.
 
-## 🧠 Flutter Concepts Covered
+## 🛠️ Tech Stack
 
-| Concept | Where Applied |
+| Layer | Technology |
 |---|---|
-| `StatefulWidget` & `StatelessWidget` | All screens and widgets |
-| `setState` | Color picker, priority selector |
-| **GetX** `RxList`, `RxBool`, `RxDouble` | Note & Todo controllers |
-| **GetX** `Obx` | Reactive UI rebuilding in list screens |
-| **GetX** `Get.to()`, `Get.back()`, `Get.find()` | Navigation throughout app |
-| **GetX** `Get.snackbar()` | Success & undo notifications |
-| `SQLite` CRUD | `db_helper.dart` |
-| Singleton Pattern | `DbHelper` class |
-| `toMap()` / `fromMap()` | Model serialization for SQLite |
-| `TextEditingController` | All form fields |
-| `GlobalKey<FormState>` | Form validation |
-| `validator` callback | Required field checks |
-| `initState()` / `dispose()` | Controller lifecycle management |
-| `ListView.builder` | Efficient list rendering |
-| `IndexedStack` | Tab state preservation |
-| `Dismissible` | Swipe-to-delete on tasks |
-| `AnimatedContainer` | Color picker animation |
-| `LinearProgressIndicator` | Task completion progress |
-| `showDatePicker` | Built-in Flutter date picker |
-| `showDialog` / `AlertDialog` | Search & delete confirmation |
-| `SegmentedButton` | Priority selector |
-| `computeLuminance()` | Dynamic text color on colored cards |
-| `BottomNavigationBar` | Main navigation |
-| `FloatingActionButton` | Add note/task trigger |
-| Custom Reusable Widgets | `NoteCard`, `TodoTile`, `EmptyState`, `ColorPickerWidget` |
-
----
+| Language | Dart |
+| Framework | Flutter (Material 3) |
+| State management | Riverpod (`flutter_riverpod`, `riverpod_generator`) |
+| Local storage | SQLite via `sqflite` |
+| Cloud backend | Firebase (Firestore, Auth) |
+| Rich text editor | `flutter_quill` |
+| Connectivity | `connectivity_plus` |
+| ID generation | `uuid` |
+| Date formatting | `intl` |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK `>=3.0.0`
-- Dart SDK `>=3.0.0`
-- Android Studio / VS Code
-- Android Emulator or Physical Device
+- Flutter SDK (channel stable)
+- A Firebase project with Firestore and Authentication enabled
+- `flutterfire configure` run against your Firebase project to generate
+  `firebase_options.dart`
 
-### Installation
-
+### Setup
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/do-all-notes.git
-
-# 2. Navigate into the project
-cd do-all-notes
-
-# 3. Install dependencies
+git clone https://github.com/Faisal60177/notes_and_tasks.git
+cd notes_and_tasks
 flutter pub get
-
-# 4. Run the app
+dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
----
+### Firebase
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com).
+2. Enable **Firestore Database** and **Authentication** (Email/Google sign-in).
+3. Run `flutterfire configure` in the project root to link the app.
+4. Firestore documents are stored under `users/{userId}/notes/{noteId}` and
+   `users/{userId}/todos/{todoId}`.
 
-## 🗄️ Database Schema
+## 📦 Building a Release
 
-### `notes` table
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | INTEGER PK AUTOINCREMENT | Unique identifier |
-| `title` | TEXT NOT NULL | Note title |
-| `content` | TEXT NOT NULL | Note body |
-| `color` | INTEGER NOT NULL | Color value (ARGB int) |
-| `createdAt` | TEXT NOT NULL | Creation timestamp |
-| `updatedAt` | TEXT NOT NULL | Last update timestamp |
-
-### `todos` table
-
-| Column | Type | Description |
-|---|---|---|
-| `id` | INTEGER PK AUTOINCREMENT | Unique identifier |
-| `title` | TEXT NOT NULL | Task title |
-| `description` | TEXT NOT NULL | Task details |
-| `isDone` | INTEGER NOT NULL (0/1) | Completion status |
-| `priority` | INTEGER NOT NULL (1/2/3) | 1=High, 2=Medium, 3=Low |
-| `dueDate` | TEXT | Optional deadline |
-| `createdAt` | TEXT NOT NULL | Creation date |
-
----
-
-## 🗺️ File Build Order
-
-If you are building this project from scratch, follow this order to avoid dependency errors:
-
-```
-1. pubspec.yaml            → Add all packages first
-2. models/                 → Define data structures
-3. database/db_helper.dart → Set up database before controllers
-4. controllers/            → Business logic depends on DB
-5. widgets/                → UI components before screens
-6. screens/                → Screens use widgets + controllers
-7. main.dart               → Wire everything together last
+```bash
+flutter build apk --release
+# or
+flutter build appbundle --release
 ```
 
----
+## 🎨 App Icon
 
-## 🔮 What This Project Does NOT Cover (Yet)
+App icons are generated with [`flutter_launcher_icons`](https://pub.dev/packages/flutter_launcher_icons).
 
-This is a **foundation learning project**. The following are intentionally left out for future projects:
-
-- 🌐 REST API / HTTP network calls
-- ☁️ Cloud sync (Firebase Firestore)
-- 🔔 Push notifications / reminders
-- 🔐 Authentication (Firebase Auth / Biometric)
-- 🖼️ Image picking / camera
-- 🧪 Unit & widget testing
-- 🏛️ Clean Architecture
-- 💡 BLoC / Riverpod state management
-- 📱 Responsive / tablet layout
-
----
-
-## 📚 Learning Purpose
-
-This project is **Part 1 of a 4-project Flutter portfolio roadmap**:
-
-| # | Project | Key Skills |
-|---|---|---|
-| **1** | **Do ALL Notes** ← _You are here_ | SQLite, GetX, Forms, CRUD |
-| 2 | Health & Fitness Tracker | Sensors, Charts, BLoC |
-| 3 | Language Learning App | TTS Audio, Riverpod, Animations |
-| 4 | Live Quiz Multiplayer | Firebase Realtime DB, Sockets |
-
----
-
-## 👨‍💻 Author
-
-**Mohammad Faisal**
-Flutter Developer — Building for international remote opportunities.
-
-- GitHub: [https://github.com/Faisal60177](https://github.com/Faisal60177)
-- LinkedIn: [www.linkedin.com/in/mohammad-faisal-7b65ab3b6](www.linkedin.com/in/mohammad-faisal-7b65ab3b6)
-
----
+1. Place a 1024×1024 PNG source icon at `assets/icon/icon.png`.
+2. Add this to `pubspec.yaml`:
+   ```yaml
+   flutter_launcher_icons:
+     android: true
+     ios: true
+     image_path: "assets/icon/note.png"
+     min_sdk_android: 21
+     adaptive_icon_background: "#FFFFFF"
+     adaptive_icon_foreground: "assets/icon/note.png"
+   ```
+3. Run:
+   ```bash
+   dart run flutter_launcher_icons
+   ```
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — feel free to use, modify, and distribute.
+This project is for personal/portfolio use. Add a license of your choice
+(MIT recommended for open-source portfolio projects).
 
-```
-MIT License — Copyright (c) 2025 Mohammad Faisal
-```
+## 👤 Author
 
----
-
-> ⭐ If this project helped you learn Flutter, consider giving it a star on GitHub!
+**Mohammad Faisal**
+Flutter Mobile App Developer
+[GitHub](https://github.com/Faisal60177) · [Play Store](https://play.google.com/store/apps/developer?id=Siratal+Mustaqeem)
