@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../utils/note_color_utils.dart';
 import 'package:notes_app/features/notes/data/models/note_model.dart';
 import '../providers/notes_notifier.dart';
 import '../utils/quill_utils.dart';
 import '../widgets/note_toolbar.dart';
-
-
 
 class NoteEditorPage extends ConsumerStatefulWidget {
   final NoteModel? existingNote;
@@ -21,6 +20,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _categoryCtrl;
   late final QuillController _quillController;
+  late final DateTime _referenceDate;
   late NoteColor _color;
   late bool _isPinned;
 
@@ -39,16 +39,27 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       document: documentFromContent(note?.content),
       selection: const TextSelection.collapsed(offset: 0),
     );
+    _quillController.addListener(_onDocChanged); // ⚠️ নতুন — লাইভ word-count আপডেটের জন্য
+    _referenceDate = note?.updatedAt ?? DateTime.now(); // ⚠️ নতুন
     _color = note?.color ?? NoteColor.default_;
     _isPinned = note?.isPinned ?? false;
     _editorFocusNode = FocusNode();
     _editorScrollController = ScrollController();
   }
 
+  void _onDocChanged() => setState(() {}); // ⚠️ নতুন
+
+  int get _wordCount { // ⚠️ নতুন
+    final text = _quillController.document.toPlainText().trim();
+    if (text.isEmpty) return 0;
+    return text.split(RegExp(r'\s+')).length;
+  }
+
   @override
   void dispose() {
     _titleCtrl.dispose();
     _categoryCtrl.dispose();
+    _quillController.removeListener(_onDocChanged); // ⚠️ নতুন
     _quillController.dispose();
     _editorFocusNode.dispose();
     _editorScrollController.dispose();
@@ -119,7 +130,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           IconButton(icon: const Icon(Icons.check), onPressed: _save),
         ],
       ),
-
       body: Column(
         children: [
           Padding(
@@ -131,14 +141,27 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none),
             ),
           ),
+          // ⚠️ নতুন — category-র জায়গায় date + word count
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Text(
+              '${DateFormat('MMMM d, h:mm a, EEE').format(_referenceDate)}  •  $_wordCount words',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ),
+          // ⚠️ Category — এখন ছোট, কম-প্রাধান্যপূর্ণ ফিল্ড হিসেবে নিচে
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
             child: TextField(
               controller: _categoryCtrl,
-              style: const TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
               decoration: const InputDecoration(
-                hintText: 'Category (optional) — e.g. Work, Personal',
+                prefixIcon: Icon(Icons.label_outline, size: 16),
+                prefixIconConstraints: BoxConstraints(minWidth: 28, minHeight: 20),
+                hintText: 'Add category',
                 border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 6),
               ),
             ),
           ),
@@ -158,8 +181,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           const Divider(height: 1),
           SafeArea(
             top: false,
-            child:
-            Theme(
+            child: Theme(
               data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
               child: NoteToolbar(controller: _quillController),
             ),

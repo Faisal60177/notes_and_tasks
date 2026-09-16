@@ -12,6 +12,7 @@ class NotesPage extends ConsumerWidget {
   const NotesPage({super.key});
 
   void _openEditor(BuildContext context, {NoteModel? existingNote}) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar(); // ⚠️ hideCurrentSnackBar থেকে বদলানো
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => NoteEditorPage(existingNote: existingNote)),
@@ -21,8 +22,10 @@ class NotesPage extends ConsumerWidget {
   void _deleteWithUndo(BuildContext context, WidgetRef ref, NoteModel note) {
     ref.read(notesProvider.notifier).deleteNote(note);
 
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.removeCurrentSnackBar();
+
+    messenger.showSnackBar(
       SnackBar(
         content: Text('"${note.title}" deleted'),
         duration: const Duration(seconds: 4),
@@ -32,6 +35,12 @@ class NotesPage extends ConsumerWidget {
         ),
       ),
     );
+
+    // ⚠️ নতুন — framework-এর নিজস্ব auto-dismiss timer stuck হয়ে গেলেও,
+    // এটা নিশ্চিতভাবে ৪ সেকেন্ড পর snackbar জোর করে সরিয়ে দেবে।
+    Future.delayed(const Duration(seconds: 4), () {
+      messenger.removeCurrentSnackBar();
+    });
   }
 
   @override
@@ -68,9 +77,7 @@ class NotesPage extends ConsumerWidget {
           if (notes.isEmpty) {
             return const Center(child: Text('No notes yet — tap + to add one!'));
           }
-          return isGrid
-              ? _buildGrid(context, ref, notes)
-              : _buildList(context, ref, notes);
+          return isGrid ? _buildGrid(context, ref, notes) : _buildList(context, ref, notes);
         },
       ),
       floatingActionButton: FloatingActionButton(

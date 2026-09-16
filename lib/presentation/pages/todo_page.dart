@@ -45,8 +45,10 @@ class TodoPage extends ConsumerWidget {
   void _deleteWithUndo(BuildContext context, WidgetRef ref, TodoModel todo) {
     ref.read(todoProvider.notifier).deleteTask(todo);
 
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.removeCurrentSnackBar();
+
+    messenger.showSnackBar(
       SnackBar(
         content: Text('"${todo.title}" deleted'),
         duration: const Duration(seconds: 4),
@@ -56,6 +58,10 @@ class TodoPage extends ConsumerWidget {
         ),
       ),
     );
+
+    Future.delayed(const Duration(seconds: 4), () {
+      messenger.removeCurrentSnackBar();
+    });
   }
 
   @override

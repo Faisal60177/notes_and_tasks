@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:notes_app/features/notes/data/models/note_model.dart';
 import '../utils/note_color_utils.dart';
 import '../utils/quill_utils.dart';
@@ -45,6 +46,13 @@ class NoteCard extends StatelessWidget {
                     Icon(Icons.push_pin, size: 14, color: Colors.grey.shade700),
                 ],
               ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  DateFormat('MMM d, yyyy').format(note.updatedAt),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ),
               if (note.content != null && note.content!.isNotEmpty)
                 Builder(builder: (context) {
                   final preview = contentToPlainPreview(note.content);
@@ -53,13 +61,12 @@ class NoteCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       preview,
-                      maxLines: 5,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
                     ),
                   );
                 }),
-
               if (note.category != null && note.category!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Chip(
@@ -109,4 +116,3 @@ class NoteCard extends StatelessWidget {
     );
   }
 }
-
