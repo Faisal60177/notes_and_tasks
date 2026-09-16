@@ -1,4 +1,4 @@
-import 'package:notes_app/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/models/note_model.dart';
 
 class NotesListState {
   final List<NoteModel> notes;

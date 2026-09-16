@@ -3,7 +3,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../utils/note_color_utils.dart';
-import 'package:notes_app/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/models/note_model.dart';
 import '../providers/notes_notifier.dart';
 import '../utils/quill_utils.dart';
 import '../widgets/note_toolbar.dart';

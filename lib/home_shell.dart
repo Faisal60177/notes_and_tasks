@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:notes_app/presentation/pages/notes_page.dart';
-import 'package:notes_app/presentation/pages/profile_page.dart';
-import 'package:notes_app/presentation/pages/todo_page.dart';
+import 'package:NoteFlow/presentation/pages/notes_page.dart';
+import 'package:NoteFlow/presentation/pages/profile_page.dart';
+import 'package:NoteFlow/presentation/pages/todo_page.dart';
 
 class HomeShell extends StatefulWidget{
   const HomeShell({super.key});

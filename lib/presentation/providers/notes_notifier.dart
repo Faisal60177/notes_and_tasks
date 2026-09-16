@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import 'package:notes_app/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/models/note_model.dart';
 import 'notes_providers.dart';
 import 'notes_state.dart';
 

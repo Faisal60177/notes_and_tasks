@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:notes_app/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/models/note_model.dart';
 
 Color noteColorToColor(NoteColor color, BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;

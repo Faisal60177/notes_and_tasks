@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/todo_tile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:notes_app/features/todo/data/models/todo_model.dart';
-import 'package:notes_app/presentation/providers/todo_notifier.dart';
-import 'package:notes_app/presentation/widgets/add_edit_task_sheet.dart';
+import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
+import 'package:NoteFlow/presentation/providers/todo_notifier.dart';
+import 'package:NoteFlow/presentation/widgets/add_edit_task_sheet.dart';
 
 class TodoPage extends ConsumerWidget {
   const TodoPage({super.key});

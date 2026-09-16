@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:notes_app/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/models/note_model.dart';
 import '../utils/note_color_utils.dart';
 import '../utils/quill_utils.dart';
 

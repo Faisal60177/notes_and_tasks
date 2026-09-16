@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:notes_app/core/providers/core_providers.dart';
-import 'package:notes_app/features/notes/data/datasources/note_local_datasource.dart';
-import 'package:notes_app/features/notes/data/datasources/note_remote_datasource.dart';
-import 'package:notes_app/features/notes/data/repository/note_repository.dart';
+import 'package:NoteFlow/core/providers/core_providers.dart';
+import 'package:NoteFlow/features/notes/data/datasources/note_local_datasource.dart';
+import 'package:NoteFlow/features/notes/data/datasources/note_remote_datasource.dart';
+import 'package:NoteFlow/features/notes/data/repository/note_repository.dart';
 import 'auth_notifier.dart';
 
 part 'notes_providers.g.dart';

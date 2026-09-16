@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:notes_app/features/todo/data/models/todo_model.dart';
+import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
 import 'priority_badge.dart';
 
 class TodoTile extends StatelessWidget {

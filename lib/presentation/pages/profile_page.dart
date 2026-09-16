@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:notes_app/presentation/pages/auth_page.dart';
-import 'package:notes_app/presentation/providers/auth_notifier.dart';
-import 'package:notes_app/presentation/providers/auth_state.dart';
+import 'package:NoteFlow/presentation/pages/auth_page.dart';
+import 'package:NoteFlow/presentation/providers/auth_notifier.dart';
+import 'package:NoteFlow/presentation/providers/auth_state.dart';
 
 
 class ProfilePage extends ConsumerWidget {

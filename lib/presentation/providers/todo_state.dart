@@ -1,4 +1,4 @@
-import 'package:notes_app/features/todo/data/models/todo_model.dart';
+import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
 
 class TodoListState {
   final List<TodoModel> todos;

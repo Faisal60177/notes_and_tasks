@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:uuid/uuid.dart';
-import 'package:notes_app/core/services/connectivity_service.dart';
+import 'package:NoteFlow/core/services/connectivity_service.dart';
 import '../datasources/note_local_datasource.dart';
 import '../datasources/note_remote_datasource.dart';
 import '../models/note_model.dart';

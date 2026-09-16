@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart';
-import 'package:notes_app/core/database/database_helper.dart';
+import 'package:NoteFlow/core/database/database_helper.dart';
 import '../models/note_model.dart';
 
 class NoteLocalDatasource {

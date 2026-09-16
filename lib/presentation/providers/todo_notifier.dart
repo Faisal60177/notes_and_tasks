@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:notes_app/features/todo/data/models/todo_model.dart';
+import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
 import 'todo_providers.dart';
 import 'todo_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
