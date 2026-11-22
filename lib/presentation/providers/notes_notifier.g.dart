@@ -20,7 +20,7 @@ final class NotesNotifierProvider
         argument: null,
         retry: null,
         name: r'notesProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -33,7 +33,7 @@ final class NotesNotifierProvider
   NotesNotifier create() => NotesNotifier();
 }
 
-String _$notesNotifierHash() => r'6d4fbf7896995ab85041e714fde861e6cf8baa56';
+String _$notesNotifierHash() => r'1f8117c6a511a409394aa4ecd8e972a61e4de81b';
 
 abstract class _$NotesNotifier extends $AsyncNotifier<NotesListState> {
   FutureOr<NotesListState> build();

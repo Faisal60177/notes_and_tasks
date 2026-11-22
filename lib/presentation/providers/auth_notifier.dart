@@ -1,58 +1,97 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'auth_state.dart';
 
 part 'auth_notifier.g.dart';
 
-const String _kWebClientId = '948897677805-dmkctq6fs8vuonsri6i7pdprcatgbqva.apps.googleusercontent.com';
+const String _kWebClientId =
+    '948897677805-dmkctq6fs8vuonsri6i7pdprcatgbqva.apps.googleusercontent.com';
 
 @Riverpod(keepAlive: true)
-class AuthNotifier extends _$AuthNotifier{
-
+class AuthNotifier extends _$AuthNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
 
   Future<void>? _googleInitFuture;
-  AuthCredential? _pendingGoogleCrendential;
+  AuthCredential? _pendingGoogleCredential;
   String? _pendingGoogleEmail;
   String? _pendingGooglePhoto;
   StreamSubscription<User?>? _authSub;
 
   @override
-  AuthState build(){
-    _googleInitFuture = _googleSignIn.initialize(serverClientId: _kWebClientId).then((_){
-      _googleSignIn.authenticationEvents.listen((_){}).onError((_){});
-    });
+  AuthState build() {
+    _googleInitFuture =
+        _googleSignIn.initialize(serverClientId: _kWebClientId).then((_) {
+          _googleSignIn.authenticationEvents.listen((_) {}).onError((_) {});
+        });
 
     _authSub = _auth.userChanges().listen((user) {
-      if(user != null) {
+      if (user != null) {
         _loadUserData(user);
-      }else {
+      } else {
         state = const AuthState(isLoggedIn: false);
       }
     });
-    ref.onDispose(()=> _authSub?.cancel());
-    return const AuthState();
+    ref.onDispose(() => _authSub?.cancel());
+
+    final cached = _auth.currentUser;
+    if (cached == null) return const AuthState();
+    return AuthState(
+      isLoggedIn: true,
+      uid: cached.uid,
+      displayName: cached.displayName ?? '',
+      email: cached.email ?? '',
+      photoUrl: cached.photoURL ?? '',
+      hasPassword: cached.providerData.any((p) => p.providerId == 'password'),
+      hasGoogle: cached.providerData.any((p) => p.providerId == 'google.com'),
+    );
   }
 
-  void clearError()=> state = state.copyWith(errorMessage: '');
+  void clearError() => state = state.copyWith(errorMessage: '');
 
   void cancelGoogleLink() {
-    _pendingGoogleCrendential = null;
+    _pendingGoogleCredential = null;
     _pendingGoogleEmail = null;
     _pendingGooglePhoto = null;
-    state = state.copyWith(needsGoogleLinkPassword: false, errorMessage: '');
+    state = state.copyWith(
+      needsGoogleLinkPassword: false,
+      clearPendingGoogleEmail: true,
+      errorMessage: '',
+    );
+  }
+
+  Future<void> _mergeUserDoc(String uid, Map<String, dynamic> data) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+  }
+
+  Future<void> _syncEmailProviders(User user) async {
+    final email = user.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) return;
+    final providers = <String>[
+      if (user.providerData.any((p) => p.providerId == 'password')) 'password',
+      if (user.providerData.any((p) => p.providerId == 'google.com')) 'google',
+    ];
+    if (providers.isEmpty) return;
+    try {
+      await _firestore
+          .collection('emailProviders')
+          .doc(email)
+          .set({'providers': providers});
+    } catch (_) {}
   }
 
   Future<void> _loadUserData(User user) async {
-    final hasPassword = user.providerData.any((p) => p.providerId == 'password');
-    final hasGoogle = user.providerData.any((p) => p.providerId == 'google.com');
+    final hasPassword =
+    user.providerData.any((p) => p.providerId == 'password');
+    final hasGoogle =
+    user.providerData.any((p) => p.providerId == 'google.com');
 
     state = state.copyWith(
       isLoggedIn: true,
@@ -63,72 +102,83 @@ class AuthNotifier extends _$AuthNotifier{
       hasGoogle: hasGoogle,
     );
 
+    unawaited(_syncEmailProviders(user));
+
     try {
       final doc = await _firestore.collection('users').doc(user.uid).get();
-      if(doc.exists) {
+      if (_auth.currentUser?.uid != user.uid) return;
+      if (doc.exists) {
         final data = doc.data()!;
         final firestoreName = data['name'] as String? ?? '';
         final firestorePhoto = data['photoUrl'] as String? ?? '';
         state = state.copyWith(
-          displayName: firestoreName.isNotEmpty ? firestoreName: state.displayName,
-          photoUrl: firestorePhoto.isNotEmpty ? firestorePhoto : user.photoURL ?? '',
+          displayName:
+          firestoreName.isNotEmpty ? firestoreName : state.displayName,
+          photoUrl:
+          firestorePhoto.isNotEmpty ? firestorePhoto : user.photoURL ?? '',
         );
-
-      }else {
+      } else {
         state = state.copyWith(photoUrl: user.photoURL ?? '');
       }
     } catch (_) {
-      state =state.copyWith(photoUrl: user.photoURL ?? '');
+      if (_auth.currentUser?.uid != user.uid) return;
+      state = state.copyWith(photoUrl: user.photoURL ?? '');
     }
   }
 
   Future<List<String>> _getProvidersFromFirestore(String email) async {
     try {
-      final query = await _firestore
-          .collection('users').where('email', isEqualTo: email.trim())
-          .limit(1).get();
-      if(query.docs.isEmpty) return[];
-      final raw = query.docs.first.data()['providers'];
-      if(raw is List) return List<String>.from(raw);
-      if(raw is String) return [raw];
+      final doc = await _firestore
+          .collection('emailProviders')
+          .doc(email.trim().toLowerCase())
+          .get();
+      if (!doc.exists) return [];
+      final raw = doc.data()?['providers'];
+      if (raw is List) return List<String>.from(raw);
+      if (raw is String) return [raw];
       return [];
-    }catch(_){
+    } catch (_) {
       return [];
     }
   }
 
-  Future<({
-    AuthCredential credential,
-  String email,
-  String displayName,
-  String photoUrl,
-})> _getGoogleCredential() async {
+  Future<
+      ({
+      AuthCredential credential,
+      String email,
+      String displayName,
+      String photoUrl,
+      })> _getGoogleCredential() async {
     await _googleInitFuture;
 
     try {
       await _googleSignIn.signOut();
-    } catch(_){}
-    if(!_googleSignIn.supportsAuthenticate()){
+    } catch (_) {}
+    if (!_googleSignIn.supportsAuthenticate()) {
       throw Exception('Google Sign-In is not supported on this platform/device.');
     }
-    final GoogleSignInAccount googleUser = await _googleSignIn.authenticate(scopeHint: ['email', 'profile']);
+    final GoogleSignInAccount googleUser =
+    await _googleSignIn.authenticate(scopeHint: ['email', 'profile']);
     final String? idToken = googleUser.authentication.idToken;
-    if(idToken == null){
-      throw Exception( 'Google sign-in failed: idToken is null. '
-          'Ensure serverClientId is set and SHA-1 is registered in Firebase Console.',);
+    if (idToken == null) {
+      throw Exception(
+        'Google sign-in failed: idToken is null. '
+            'Ensure serverClientId is set and SHA-1 is registered in Firebase Console.',
+      );
     }
     final clientAuth = await googleUser.authorizationClient
-    .authorizationForScopes(['email', 'profile']) ??
-    await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
+        .authorizationForScopes(['email', 'profile']) ??
+        await googleUser.authorizationClient
+            .authorizeScopes(['email', 'profile']);
     final credential = GoogleAuthProvider.credential(
       idToken: idToken,
-      accessToken: clientAuth?.accessToken,
+      accessToken: clientAuth.accessToken,
     );
-    return(
-    credential :credential,
-    email : googleUser.email,
+    return (
+    credential: credential,
+    email: googleUser.email,
     displayName: googleUser.displayName ?? '',
-    photoUrl: googleUser.photoUrl?? '',
+    photoUrl: googleUser.photoUrl ?? '',
     );
   }
 
@@ -136,22 +186,28 @@ class AuthNotifier extends _$AuthNotifier{
     required String name,
     required String email,
     required String password,
-}) async {
+  }) async {
     try {
-      state = state.copyWith(isLoggedIn: true,errorMessage: '');
+      state = state.copyWith(isLoading: true, errorMessage: '');
       UserCredential credential;
-      try{
-        credential = await _auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
-      } on FirebaseAuthException catch(e) {
-        if(e.code == 'email-already-in-use'){
+      try {
+        credential = await _auth.createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
           final providers = await _getProvidersFromFirestore(email.trim());
-          if(providers.contains('password')){
-            state = state.copyWith(errorMessage: 'This email is already registered. Please sign in instead.');
+          if (providers.contains('password')) {
+            state = state.copyWith(
+              errorMessage:
+              'This email is already registered. Please sign in instead.',
+            );
             return false;
           }
           return await _linkPasswordToExistingAccount(
             email: email.trim(),
-            password : password,
+            password: password,
             name: name.trim(),
           );
         }
@@ -161,62 +217,67 @@ class AuthNotifier extends _$AuthNotifier{
       final user = credential.user!;
       await user.updateDisplayName(name.trim());
 
-      await _firestore.collection('users').doc(user.uid).set({
+      await _mergeUserDoc(user.uid, {
         'uid': user.uid,
         'name': name.trim(),
-        'email': email.trim(),
+        'email': email.trim().toLowerCase(),
         'photoUrl': '',
         'providers': ['password'],
-        'createdAt' : FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
       });
+      await _syncEmailProviders(_auth.currentUser ?? user);
       return true;
-    } on FirebaseAuthException catch(e){
+    } on FirebaseAuthException catch (e) {
       state = state.copyWith(errorMessage: _mapFirebaseError(e.code));
       return false;
-    } catch(_){
-      state = state.copyWith(errorMessage: 'Something went wrong. Please try again.');
+    } catch (_) {
+      state = state.copyWith(
+        errorMessage: 'Something went wrong. Please try again.',
+      );
       return false;
     } finally {
-    state = state.copyWith(isLoading: false);
-  }
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<bool> signInWithEmail({
     required String email,
     required String password,
-}) async {
+  }) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: '');
-      await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
-       await _firestore.collection('users')
-      .doc(_auth.currentUser!.uid)
-      .update({'lastLogin' : FieldValue.serverTimestamp()});
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await _mergeUserDoc(_auth.currentUser!.uid, {
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
       return true;
-    } on FirebaseAuthException catch (e){
-      if (e.code == 'invalid-credential' || e.code == 'wrong-password'){
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-credential' || e.code == 'wrong-password') {
         final providers = await _getProvidersFromFirestore(email);
-        if(providers.contains('google') && !providers.contains('password')){
+        if (providers.contains('google') && !providers.contains('password')) {
           state = state.copyWith(
             errorMessage: 'This account uses Google sign-in only. '
                 'Tap "Continue with Google", or add a password from Profile → Security.',
           );
         } else {
-          state = state.copyWith(errorMessage: 'Incorrect email or password. Please try again.');
+          state = state.copyWith(
+            errorMessage: 'Incorrect email or password. Please try again.',
+          );
         }
-
-      }
-      else {
+      } else {
         state = state.copyWith(errorMessage: _mapFirebaseError(e.code));
       }
       return false;
-
-    }
-    catch (_) {
-      state = state.copyWith(errorMessage: 'Something went wrong. Please try again.');
+    } catch (_) {
+      state = state.copyWith(
+        errorMessage: 'Something went wrong. Please try again.',
+      );
       return false;
-    }
-    finally {
+    } finally {
       state = state.copyWith(isLoading: false);
     }
   }
@@ -229,30 +290,37 @@ class AuthNotifier extends _$AuthNotifier{
 
       if (providers.isEmpty) {
         return await _completeGoogleSignIn(
-          google.credential, google.email, google.displayName, google.photoUrl,
-          isNew : true,
+          google.credential,
+          google.email,
+          google.displayName,
+          google.photoUrl,
+          isNew: true,
         );
       }
       if (providers.contains('google')) {
         return await _completeGoogleSignIn(
-          google.credential, google.email, google.displayName, google.photoUrl,
+          google.credential,
+          google.email,
+          google.displayName,
+          google.photoUrl,
           isNew: false,
         );
       }
 
-      _pendingGoogleCrendential = google.credential;
+      _pendingGoogleCredential = google.credential;
       _pendingGoogleEmail = google.email;
       _pendingGooglePhoto = google.photoUrl;
 
       state = state.copyWith(
         needsGoogleLinkPassword: true,
         pendingGoogleEmail: google.email,
-        errorMessage: 'An account with this email already exists using a password. '
+        errorMessage:
+        'An account with this email already exists using a password. '
             'Enter that password to link Google sign-in.',
       );
       return false;
-    } on GoogleSignInException catch(e) {
-      if(e.code.name == 'canceled') return false;
+    } on GoogleSignInException catch (e) {
+      if (e.code.name == 'canceled') return false;
       state = state.copyWith(errorMessage: _mapGoogleSignInError(e.code.name));
       return false;
     } on FirebaseAuthException catch (e) {
@@ -260,7 +328,11 @@ class AuthNotifier extends _$AuthNotifier{
       return false;
     } catch (e) {
       final msg = e.toString();
-      state = state.copyWith(errorMessage: msg.contains('not supported') ? msg: 'Google sign-in failed. Please try again.', );
+      state = state.copyWith(
+        errorMessage: msg.contains('not supported')
+            ? msg
+            : 'Google sign-in failed. Please try again.',
+      );
       return false;
     } finally {
       state = state.copyWith(isLoading: false);
@@ -273,64 +345,90 @@ class AuthNotifier extends _$AuthNotifier{
       String googleName,
       String googlePhoto, {
         required bool isNew,
-  }) async {
+      }) async {
     final userCred = await _auth.signInWithCredential(credential);
     final user = userCred.user!;
 
-    if(isNew) {
-      await _firestore.collection('users').doc(user.uid).set({
+    if (isNew) {
+      await _mergeUserDoc(user.uid, {
         'uid': user.uid,
         'name': user.displayName ?? googleName,
-        'email': user.email ?? googleEmail,
+        'email': (user.email ?? googleEmail).toLowerCase(),
         'photoUrl': user.photoURL ?? googlePhoto,
         'providers': ['google'],
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
       });
     } else {
-      await _firestore
-          .collection('users').doc(user.uid)
-          .update({'lastLogin' : FieldValue.serverTimestamp()});
+      await _mergeUserDoc(user.uid, {
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
     }
+    await _syncEmailProviders(user);
     return true;
   }
 
   Future<bool> completeGoogleLinkWithPassword({
     required String email,
     required String password,
-}) async {
-    final pending = _pendingGoogleCrendential;
-    if(pending == null){
-      state = state.copyWith(errorMessage: 'No pending Google sign-in. Please try again.');
+  }) async {
+    final pending = _pendingGoogleCredential;
+    if (pending == null) {
+      state = state.copyWith(
+        errorMessage: 'No pending Google sign-in. Please try again.',
+      );
+      return false;
+    }
+    final pendingEmail = _pendingGoogleEmail;
+    if (pendingEmail != null &&
+        pendingEmail.toLowerCase() != email.trim().toLowerCase()) {
+      state = state.copyWith(
+        errorMessage: 'The email does not match the selected Google account.',
+      );
       return false;
     }
     try {
       state = state.copyWith(isLoading: true, errorMessage: '');
-      final userCred =
-      await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
+      final userCred = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
       final user = userCred.user!;
-      
-      final alreadyLinked = user.providerData.any((p) => p.providerId == 'google.com');
-      if(!alreadyLinked){
+
+      final alreadyLinked =
+      user.providerData.any((p) => p.providerId == 'google.com');
+      if (!alreadyLinked) {
         await user.linkWithCredential(pending);
       }
-      await _firestore.collection('users').doc(user.uid).update({
-        'providers' : FieldValue.arrayUnion(['google']),
+      await _mergeUserDoc(user.uid, {
+        'providers': FieldValue.arrayUnion(['google']),
         'photoUrl': user.photoURL ?? _pendingGooglePhoto ?? '',
         'lastLogin': FieldValue.serverTimestamp(),
       });
+      await _syncEmailProviders(_auth.currentUser ?? user);
 
-      _pendingGoogleCrendential = null;
+      _pendingGoogleCredential = null;
       _pendingGoogleEmail = null;
       _pendingGooglePhoto = null;
-      state= state.copyWith(needsGoogleLinkPassword: false);
+      state = state.copyWith(
+        needsGoogleLinkPassword: false,
+        clearPendingGoogleEmail: true,
+      );
       return true;
-    } on FirebaseAuthException catch(e) {
-      if(e.code == 'provider-already-linked'){
-        state = state.copyWith(needsGoogleLinkPassword: false);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'provider-already-linked') {
+        state = state.copyWith(
+          needsGoogleLinkPassword: false,
+          clearPendingGoogleEmail: true,
+        );
         return true;
       }
       state = state.copyWith(errorMessage: _mapFirebaseError(e.code));
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        errorMessage: 'Could not link Google account. Please try again.',
+      );
       return false;
     } finally {
       state = state.copyWith(isLoading: false);
@@ -341,26 +439,35 @@ class AuthNotifier extends _$AuthNotifier{
     required String email,
     required String password,
     required String name,
-}) async {
-    try{
+  }) async {
+    try {
       final google = await _getGoogleCredential();
-      if(google.email.toLowerCase() != email.toLowerCase()){
-        state = state.copyWith(errorMessage: 'The Google account selected does not match the email entered.');
+      if (google.email.toLowerCase() != email.toLowerCase()) {
+        state = state.copyWith(
+          errorMessage:
+          'The Google account selected does not match the email entered.',
+        );
         return false;
       }
       final userCred = await _auth.signInWithCredential(google.credential);
       final user = userCred.user!;
-      
-      final alreadyHasPassword = user.providerData.any((p) => p.providerId == 'password');
-      if(!alreadyHasPassword){
-        final emailCred = EmailAuthProvider.credential(email: email, password: password);
+
+      final alreadyHasPassword =
+      user.providerData.any((p) => p.providerId == 'password');
+      if (!alreadyHasPassword) {
+        final emailCred =
+        EmailAuthProvider.credential(email: email, password: password);
         await user.linkWithCredential(emailCred);
+        if ((user.displayName ?? '').isEmpty) {
+          await user.updateDisplayName(name);
+        }
       }
 
-      await _firestore.collection('users').doc(user.uid).update({
+      await _mergeUserDoc(user.uid, {
         'providers': FieldValue.arrayUnion(['password']),
         'lastLogin': FieldValue.serverTimestamp(),
       });
+      await _syncEmailProviders(_auth.currentUser ?? user);
       return true;
     } on GoogleSignInException catch (e) {
       if (e.code.name == 'canceled') return false;
@@ -371,7 +478,9 @@ class AuthNotifier extends _$AuthNotifier{
       state = state.copyWith(errorMessage: _mapFirebaseError(e.code));
       return false;
     } catch (_) {
-      state = state.copyWith(errorMessage: 'Google verification failed. Please try again.');
+      state = state.copyWith(
+        errorMessage: 'Google verification failed. Please try again.',
+      );
       return false;
     }
   }
@@ -382,7 +491,9 @@ class AuthNotifier extends _$AuthNotifier{
       final providers = await _getProvidersFromFirestore(emailAddress);
       if (providers.contains('google') && !providers.contains('password')) {
         state = state.copyWith(
-          errorMessage: 'This account uses Google sign-in. Tap "Continue with Google".',);
+          errorMessage:
+          'This account uses Google sign-in. Tap "Continue with Google".',
+        );
         return false;
       }
       await _auth.sendPasswordResetEmail(email: emailAddress.trim());
@@ -396,19 +507,19 @@ class AuthNotifier extends _$AuthNotifier{
   }
 
   Future<void> signOut() async {
-    try{
+    try {
       await _googleSignIn.signOut();
-    } catch (_){}
+    } catch (_) {}
     await _auth.signOut();
   }
 
   Future<bool> updateProfile({required String name}) async {
-    try{
+    try {
       state = state.copyWith(isLoading: true);
       final user = _auth.currentUser;
-      if(user == null) return false;
+      if (user == null) return false;
       await Future.wait([
-        _firestore.collection('users').doc(user.uid).update({'name': name.trim()}),
+        _mergeUserDoc(user.uid, {'name': name.trim()}),
         user.updateDisplayName(name.trim()),
       ]);
       state = state.copyWith(displayName: name.trim());
@@ -428,16 +539,17 @@ class AuthNotifier extends _$AuthNotifier{
         state = state.copyWith(errorMessage: 'No user signed in.');
         return false;
       }
-      
+
       await user.reload();
       final freshUser = _auth.currentUser!;
-      final alreadyLinked = freshUser.providerData.any((p) => p.providerId == 'password');
-      if(alreadyLinked){
-        try{
+      final alreadyLinked =
+      freshUser.providerData.any((p) => p.providerId == 'password');
+      if (alreadyLinked) {
+        try {
           await freshUser.updatePassword(password);
         } on FirebaseAuthException catch (e) {
-          if(e.code == 'requires-recent-login') {
-            if(state.hasGoogle){
+          if (e.code == 'requires-recent-login') {
+            if (state.hasGoogle) {
               final google = await _getGoogleCredential();
               await freshUser.reauthenticateWithCredential(google.credential);
               await _auth.currentUser!.updatePassword(password);
@@ -453,11 +565,15 @@ class AuthNotifier extends _$AuthNotifier{
           }
         }
       } else {
-        final emailCred = EmailAuthProvider.credential(email: freshUser.email!, password: password);
+        final emailCred = EmailAuthProvider.credential(
+          email: freshUser.email!,
+          password: password,
+        );
         await freshUser.linkWithCredential(emailCred);
-        await _firestore.collection('users').doc(freshUser.uid).update({
+        await _mergeUserDoc(freshUser.uid, {
           'providers': FieldValue.arrayUnion(['password']),
         });
+        await _syncEmailProviders(_auth.currentUser ?? freshUser);
       }
       state = state.copyWith(hasPassword: true);
       return true;
@@ -469,7 +585,9 @@ class AuthNotifier extends _$AuthNotifier{
       state = state.copyWith(errorMessage: _mapFirebaseError(e.code));
       return false;
     } catch (_) {
-      state = state.copyWith(errorMessage: 'Failed to set password. Please try again.');
+      state = state.copyWith(
+        errorMessage: 'Failed to set password. Please try again.',
+      );
       return false;
     } finally {
       state = state.copyWith(isLoading: false);
@@ -477,7 +595,7 @@ class AuthNotifier extends _$AuthNotifier{
   }
 
   String _mapFirebaseError(String code) {
-    switch(code){
+    switch (code) {
       case 'user-not-found':
         return 'No account found with this email.';
       case 'wrong-password':
@@ -502,11 +620,10 @@ class AuthNotifier extends _$AuthNotifier{
       default:
         return 'Something went wrong. Please try again.';
     }
-
   }
 
-String _mapGoogleSignInError(String codeName) {
-    switch(codeName){
+  String _mapGoogleSignInError(String codeName) {
+    switch (codeName) {
       case 'canceled':
         return '';
       case 'interrupted':
@@ -515,8 +632,6 @@ String _mapGoogleSignInError(String codeName) {
         return 'Google Sign-In configuration error.';
       default:
         return 'Google sign-in failed. Please try again.';
-
     }
-}
-
+  }
 }

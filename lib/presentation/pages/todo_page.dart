@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../widgets/todo_tile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
 import 'package:NoteFlow/presentation/providers/todo_notifier.dart';
 import 'package:NoteFlow/presentation/widgets/add_edit_task_sheet.dart';
+import '../widgets/todo_tile.dart';
 
 class TodoPage extends ConsumerWidget {
   const TodoPage({super.key});
@@ -35,6 +35,10 @@ class TodoPage extends ConsumerWidget {
               category: category,
               priority: priority,
               dueDate: dueDate,
+              // field খালি করা হলে null হিসেবে সেভ হবে
+              clearDescription: description == null,
+              clearCategory: category == null,
+              clearDueDate: dueDate == null,
             ));
           }
         },
@@ -48,7 +52,7 @@ class TodoPage extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     messenger.removeCurrentSnackBar();
 
-    messenger.showSnackBar(
+    final controller = messenger.showSnackBar(
       SnackBar(
         content: Text('"${todo.title}" deleted'),
         duration: const Duration(seconds: 4),
@@ -59,8 +63,10 @@ class TodoPage extends ConsumerWidget {
       ),
     );
 
+    var closed = false;
+    controller.closed.then((_) => closed = true);
     Future.delayed(const Duration(seconds: 4), () {
-      messenger.removeCurrentSnackBar();
+      if (!closed) controller.close();
     });
   }
 

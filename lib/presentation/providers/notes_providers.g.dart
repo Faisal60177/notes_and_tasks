@@ -55,7 +55,7 @@ final class NoteLocalDatasourceProvider
 }
 
 String _$noteLocalDatasourceHash() =>
-    r'a5c6803802c6383c82f1f57c8226f23d226f44be';
+    r'dfc408912994a8b7eb751169d74ef2738a64c9c0';
 
 @ProviderFor(noteRemoteDatasource)
 final noteRemoteDatasourceProvider = NoteRemoteDatasourceProvider._();
@@ -103,7 +103,7 @@ final class NoteRemoteDatasourceProvider
 }
 
 String _$noteRemoteDatasourceHash() =>
-    r'f21688210701e58f43704c41a3dec9813b6fe83e';
+    r'4735222723c7663d41e7a722235a2be050e1316a';
 
 @ProviderFor(noteRepository)
 final noteRepositoryProvider = NoteRepositoryProvider._();
@@ -144,4 +144,4 @@ final class NoteRepositoryProvider
   }
 }
 
-String _$noteRepositoryHash() => r'7a3bbbeb2a5a453dfcca18ef4891c493591e0a27';
+String _$noteRepositoryHash() => r'9fd4fa8b6c3263aa733ee3c7c0f5c0a828795050';

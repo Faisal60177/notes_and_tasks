@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:NoteFlow/features/notes/data/models/note_model.dart';
+import '../providers/note_view_provider.dart';
 import '../providers/notes_notifier.dart';
 import '../widgets/note_card.dart';
 import 'note_editor_page.dart';
-
-final noteViewIsGridProvider = StateProvider<bool>((ref) => true);
 
 class NotesPage extends ConsumerWidget {
   const NotesPage({super.key});
 
   void _openEditor(BuildContext context, {NoteModel? existingNote}) {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar(); // ⚠️ hideCurrentSnackBar থেকে বদলানো
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => NoteEditorPage(existingNote: existingNote)),
@@ -25,7 +23,7 @@ class NotesPage extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     messenger.removeCurrentSnackBar();
 
-    messenger.showSnackBar(
+    final controller = messenger.showSnackBar(
       SnackBar(
         content: Text('"${note.title}" deleted'),
         duration: const Duration(seconds: 4),
@@ -36,10 +34,12 @@ class NotesPage extends ConsumerWidget {
       ),
     );
 
-    // ⚠️ নতুন — framework-এর নিজস্ব auto-dismiss timer stuck হয়ে গেলেও,
-    // এটা নিশ্চিতভাবে ৪ সেকেন্ড পর snackbar জোর করে সরিয়ে দেবে।
+    // Framework-এর timer আটকে গেলেও ঠিক ৪ সেকেন্ডে বন্ধ হবে।
+    // শুধু *এই* snackbar বন্ধ করে, পরের delete-এর snackbar-কে ছোঁয় না।
+    var closed = false;
+    controller.closed.then((_) => closed = true);
     Future.delayed(const Duration(seconds: 4), () {
-      messenger.removeCurrentSnackBar();
+      if (!closed) controller.close();
     });
   }
 
@@ -55,7 +55,7 @@ class NotesPage extends ConsumerWidget {
           IconButton(
             icon: Icon(isGrid ? Icons.view_list_outlined : Icons.grid_view_outlined),
             tooltip: isGrid ? 'List view' : 'Grid view',
-            onPressed: () => ref.read(noteViewIsGridProvider.notifier).state = !isGrid,
+            onPressed: () => ref.read(noteViewIsGridProvider.notifier).toggle(),
           ),
           IconButton(
             icon: (notesAsync.value?.isSyncing ?? false)
@@ -98,15 +98,7 @@ class NotesPage extends ConsumerWidget {
         childAspectRatio: 0.85,
       ),
       itemCount: notes.length,
-      itemBuilder: (context, index) {
-        final note = notes[index];
-        return NoteCard(
-          note: note,
-          onTap: () => _openEditor(context, existingNote: note),
-          onTogglePin: () => ref.read(notesProvider.notifier).togglePinned(note),
-          onDelete: () => _deleteWithUndo(context, ref, note),
-        );
-      },
+      itemBuilder: (context, index) => _card(context, ref, notes[index]),
     );
   }
 
@@ -115,15 +107,16 @@ class NotesPage extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       itemCount: notes.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final note = notes[index];
-        return NoteCard(
-          note: note,
-          onTap: () => _openEditor(context, existingNote: note),
-          onTogglePin: () => ref.read(notesProvider.notifier).togglePinned(note),
-          onDelete: () => _deleteWithUndo(context, ref, note),
-        );
-      },
+      itemBuilder: (context, index) => _card(context, ref, notes[index]),
+    );
+  }
+
+  Widget _card(BuildContext context, WidgetRef ref, NoteModel note) {
+    return NoteCard(
+      note: note,
+      onTap: () => _openEditor(context, existingNote: note),
+      onTogglePin: () => ref.read(notesProvider.notifier).togglePinned(note),
+      onDelete: () => _deleteWithUndo(context, ref, note),
     );
   }
 }

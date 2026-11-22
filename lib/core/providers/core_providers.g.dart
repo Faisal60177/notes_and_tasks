@@ -97,3 +97,37 @@ final class ConnectivityServiceProvider
 
 String _$connectivityServiceHash() =>
     r'95e1b48f96e075c047a46e92aa33a19a18e68e05';
+
+@ProviderFor(connectivityStatus)
+final connectivityStatusProvider = ConnectivityStatusProvider._();
+
+final class ConnectivityStatusProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, Stream<bool>>
+    with $FutureModifier<bool>, $StreamProvider<bool> {
+  ConnectivityStatusProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'connectivityStatusProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$connectivityStatusHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<bool> create(Ref ref) {
+    return connectivityStatus(ref);
+  }
+}
+
+String _$connectivityStatusHash() =>
+    r'9693f90e144960b4993f5e2666ec7691af0e44a7';

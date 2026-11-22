@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_shell.dart';
-import 'presentation/pages/todo_page.dart';
 
 
 Future<void> main() async {
@@ -28,10 +27,12 @@ class MyApp extends StatelessWidget{
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+
       supportedLocales: const [
         Locale('en'),
       ],
-      title: 'Notes App',
+
+      title: 'NoteFlow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
       home: const HomeShell(),

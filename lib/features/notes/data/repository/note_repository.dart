@@ -24,6 +24,11 @@ class NoteRepository {
 
   Future<List<NoteModel>> getNotes() => _local.getAllNotes();
 
+  Future<void> adoptGuestData() async {
+    if (!isLoggedIn) return;
+    await _local.adoptGuestRows();
+  }
+
   Future<void> addNote({
     required String title,
     String? content,
@@ -44,53 +49,67 @@ class NoteRepository {
       isSynced: false,
     );
     await _local.upsertNote(note);
-    unawaited(_pushIfAllowed(note));
+    unawaited(_push(note));
   }
 
   Future<void> updateNote(NoteModel note) async {
     final updated = note.copyWith(updatedAt: DateTime.now(), isSynced: false);
     await _local.upsertNote(updated);
-    unawaited(_pushIfAllowed(updated));
+    unawaited(_push(updated));
   }
 
-  Future<void> togglePinned(NoteModel note) => updateNote(note.copyWith(isPinned: !note.isPinned));
+  Future<void> togglePinned(NoteModel note) =>
+      updateNote(note.copyWith(isPinned: !note.isPinned));
 
   Future<void> deleteNote(
       NoteModel note, {
         Duration undoWindow = const Duration(seconds: 5),
       }) async {
-    await _local.softDeleteNote(note.id, DateTime.now());
+    final deletedAt = DateTime.now();
+    await _local.softDeleteNote(note.id, deletedAt);
+
+    final tombstone =
+    note.copyWith(isDeleted: true, updatedAt: deletedAt, isSynced: false);
+
     _pendingDeleteTimers[note.id]?.cancel();
     _pendingDeleteTimers[note.id] = Timer(undoWindow, () {
       _pendingDeleteTimers.remove(note.id);
-      _finalizeDelete(note.id);
+      _finalizeDelete(tombstone);
     });
   }
 
-  Future<void> _finalizeDelete(String id) async {
-    if (isLoggedIn && await _connectivity.isOnline) {
-      try {
-        await _remote.deleteNote(id);
-      } catch (_) {
-        return;
-      }
-      await _local.deleteNote(id);
+  Future<void> _finalizeDelete(NoteModel tombstone) async {
+    if (!isLoggedIn) {
+      await _local.deleteNote(tombstone.id);
+      return;
+    }
+    if (await _push(tombstone)) {
+      await _local.purgeSyncedDeletes();
     }
   }
 
   Future<void> undoDelete(NoteModel note) async {
     _pendingDeleteTimers.remove(note.id)?.cancel();
-    await _local.restoreNote(note.id, DateTime.now());
+    final now = DateTime.now();
+    await _local.restoreNote(note.id, now);
+    unawaited(
+      _push(note.copyWith(isDeleted: false, isSynced: false, updatedAt: now)),
+    );
   }
 
-  Future<void> _pushIfAllowed(NoteModel note) async {
-    if (!isLoggedIn) return;
-    if (await _connectivity.isOnline) {
-      try {
-        await _remote.pushNote(note);
-        await _local.markSynced(note.id);
-      } catch (_) {
-      }
+  Future<bool> _push(NoteModel note) async {
+    if (!isLoggedIn) return false;
+    if (!await _connectivity.isOnline) return false;
+    return _pushOne(note);
+  }
+
+  Future<bool> _pushOne(NoteModel note) async {
+    try {
+      await _remote.pushNote(note);
+      await _local.markSynced(note.id, note.updatedAt);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -100,19 +119,10 @@ class NoteRepository {
 
     final unsynced = await _local.getUnsyncedNotes();
     for (final note in unsynced) {
-      try {
-        if (note.isDeleted) {
-          await _remote.deleteNote(note.id);
-          await _local.deleteNote(note.id);
-        } else {
-          await _remote.pushNote(note);
-          await _local.markSynced(note.id);
-        }
-      } catch (_) {
-        continue;
-      }
+      await _pushOne(note);
     }
     await _local.purgeSyncedDeletes();
+
     final remoteNotes = await _remote.fetchAllNotes();
     final toApply = await _resolveConflicts(remoteNotes);
     if (toApply.isNotEmpty) await _local.upsertMany(toApply);
@@ -143,9 +153,12 @@ class NoteRepository {
     final localById = {for (final n in localNotes) n.id: n};
     return [
       for (final r in remoteNotes)
-        if (localById[r.id] == null ||
-            r.updatedAt.isAfter(localById[r.id]!.updatedAt))
-          r,
+        if (_shouldApply(r, localById[r.id])) r,
     ];
+  }
+
+  bool _shouldApply(NoteModel remote, NoteModel? local) {
+    if (local == null) return !remote.isDeleted;
+    return remote.updatedAt.isAfter(local.updatedAt);
   }
 }

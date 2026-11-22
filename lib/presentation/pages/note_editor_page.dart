@@ -39,17 +39,17 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       document: documentFromContent(note?.content),
       selection: const TextSelection.collapsed(offset: 0),
     );
-    _quillController.addListener(_onDocChanged); // ⚠️ নতুন — লাইভ word-count আপডেটের জন্য
-    _referenceDate = note?.updatedAt ?? DateTime.now(); // ⚠️ নতুন
+    _quillController.addListener(_onDocChanged); // লাইভ word-count আপডেটের জন্য
+    _referenceDate = note?.updatedAt ?? DateTime.now();
     _color = note?.color ?? NoteColor.default_;
     _isPinned = note?.isPinned ?? false;
     _editorFocusNode = FocusNode();
     _editorScrollController = ScrollController();
   }
 
-  void _onDocChanged() => setState(() {}); // ⚠️ নতুন
+  void _onDocChanged() => setState(() {});
 
-  int get _wordCount { // ⚠️ নতুন
+  int get _wordCount {
     final text = _quillController.document.toPlainText().trim();
     if (text.isEmpty) return 0;
     return text.split(RegExp(r'\s+')).length;
@@ -59,7 +59,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   void dispose() {
     _titleCtrl.dispose();
     _categoryCtrl.dispose();
-    _quillController.removeListener(_onDocChanged); // ⚠️ নতুন
+    _quillController.removeListener(_onDocChanged);
     _quillController.dispose();
     _editorFocusNode.dispose();
     _editorScrollController.dispose();
@@ -78,10 +78,16 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         content: content,
         color: _color,
         category: category,
+        clearCategory: category == null, // category মুছলে সত্যিই মুছবে
         isPinned: _isPinned,
       ));
     } else {
-      notifier.addNote(title: _titleCtrl.text.trim(), content: content, color: _color, category: category);
+      notifier.addNote(
+        title: _titleCtrl.text.trim(),
+        content: content,
+        color: _color,
+        category: category,
+      );
     }
     Navigator.pop(context);
   }
@@ -141,7 +147,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none),
             ),
           ),
-          // ⚠️ নতুন — category-র জায়গায় date + word count
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
@@ -149,7 +154,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
             ),
           ),
-          // ⚠️ Category — এখন ছোট, কম-প্রাধান্যপূর্ণ ফিল্ড হিসেবে নিচে
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
             child: TextField(

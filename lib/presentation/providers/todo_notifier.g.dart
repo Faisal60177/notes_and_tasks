@@ -20,7 +20,7 @@ final class TodoNotifierProvider
         argument: null,
         retry: null,
         name: r'todoProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -33,7 +33,7 @@ final class TodoNotifierProvider
   TodoNotifier create() => TodoNotifier();
 }
 
-String _$todoNotifierHash() => r'5b9e24333a7dea829b1f0fc176aafa876295f6e2';
+String _$todoNotifierHash() => r'b2733fe667eb56fd95cd3dd59f1ab252c92e14b0';
 
 abstract class _$TodoNotifier extends $AsyncNotifier<TodoListState> {
   FutureOr<TodoListState> build();

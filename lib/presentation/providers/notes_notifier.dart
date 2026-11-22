@@ -1,27 +1,37 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:NoteFlow/core/providers/core_providers.dart';
 import 'package:NoteFlow/features/notes/data/models/note_model.dart';
+import 'package:NoteFlow/features/notes/data/repository/note_repository.dart';
 import 'notes_providers.dart';
 import 'notes_state.dart';
 
 part 'notes_notifier.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class NotesNotifier extends _$NotesNotifier {
+  NoteRepository? _syncedRepo;
+  NoteRepository? _syncingRepo;
 
-  bool _hasSyncedOnce = false;
   @override
   Future<NotesListState> build() async {
     final repository = ref.watch(noteRepositoryProvider);
 
     repository.startRemoteListener(() {
-      ref.invalidateSelf();
+      unawaited(_reload());
     });
 
-    if (!_hasSyncedOnce) {
-      _hasSyncedOnce = true;
-      Future.microtask(() => syncNow());
+    ref.listen(connectivityStatusProvider, (_, next) {
+      if (next.value == true) unawaited(syncNow());
+    });
+
+    if (!identical(_syncedRepo, repository)) {
+      _syncedRepo = repository;
+      Future.microtask(syncNow);
     }
 
+    await repository.adoptGuestData();
     final notes = await repository.getNotes();
     return NotesListState(notes: notes);
   }
@@ -33,7 +43,12 @@ class NotesNotifier extends _$NotesNotifier {
     String? category,
   }) async {
     final repository = ref.read(noteRepositoryProvider);
-    await repository.addNote(title: title, content: content, color: color, category: category);
+    await repository.addNote(
+      title: title,
+      content: content,
+      color: color,
+      category: category,
+    );
     await _reload();
   }
 
@@ -62,20 +77,25 @@ class NotesNotifier extends _$NotesNotifier {
   }
 
   Future<void> syncNow() async {
-    final current = state.value ?? const NotesListState();
-    state = AsyncData(current.copyWith(isSyncing: true));
-
     final repository = ref.read(noteRepositoryProvider);
+    if (!repository.isLoggedIn || identical(_syncingRepo, repository)) return;
+    _syncingRepo = repository;
     try {
+      final current = state.value ?? await future;
+      if (!ref.mounted) return;
+      state = AsyncData(current.copyWith(isSyncing: true));
       await repository.syncNow();
+    } catch (_) {
     } finally {
-      await _reload(isSyncing: false);
+      if (identical(_syncingRepo, repository)) _syncingRepo = null;
+      if (ref.mounted) await _reload(isSyncing: false);
     }
   }
 
   Future<void> _reload({bool isSyncing = false}) async {
     final repository = ref.read(noteRepositoryProvider);
     final notes = await repository.getNotes();
+    if (!ref.mounted) return;
     state = AsyncData(NotesListState(notes: notes, isSyncing: isSyncing));
   }
 }

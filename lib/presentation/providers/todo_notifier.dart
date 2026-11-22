@@ -1,28 +1,37 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:NoteFlow/core/providers/core_providers.dart';
 import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
+import 'package:NoteFlow/features/todo/data/repository/todo_repository.dart';
 import 'todo_providers.dart';
 import 'todo_state.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'todo_notifier.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class TodoNotifier extends _$TodoNotifier {
+  TodoRepository? _syncedRepo;
+  TodoRepository? _syncingRepo;
 
-  bool _hasSyncedOnce = false;
   @override
   Future<TodoListState> build() async {
     final repository = ref.watch(todoRepositoryProvider);
 
     repository.startRemoteListener(() {
-      ref.invalidateSelf();
+      unawaited(_reload());
     });
 
-    if (!_hasSyncedOnce) {
-      _hasSyncedOnce = true;
-      Future.microtask(() => syncNow());
+    ref.listen(connectivityStatusProvider, (_, next) {
+      if (next.value == true) unawaited(syncNow());
+    });
+
+    if (!identical(_syncedRepo, repository)) {
+      _syncedRepo = repository;
+      Future.microtask(syncNow);
     }
 
+    await repository.adoptGuestData();
     final todos = await repository.getTodos();
     return TodoListState(todos: todos);
   }
@@ -70,20 +79,25 @@ class TodoNotifier extends _$TodoNotifier {
   }
 
   Future<void> syncNow() async {
-    final current = state.value ?? const TodoListState();
-    state = AsyncData(current.copyWith(isSyncing: true));
-
     final repository = ref.read(todoRepositoryProvider);
+    if (!repository.isLoggedIn || identical(_syncingRepo, repository)) return;
+    _syncingRepo = repository;
     try {
+      final current = state.value ?? await future;
+      if (!ref.mounted) return;
+      state = AsyncData(current.copyWith(isSyncing: true));
       await repository.syncNow();
+    } catch (_) {
     } finally {
-      await _reload(isSyncing: false);
+      if (identical(_syncingRepo, repository)) _syncingRepo = null;
+      if (ref.mounted) await _reload(isSyncing: false);
     }
   }
 
   Future<void> _reload({bool isSyncing = false}) async {
     final repository = ref.read(todoRepositoryProvider);
     final todos = await repository.getTodos();
+    if (!ref.mounted) return;
     state = AsyncData(TodoListState(todos: todos, isSyncing: isSyncing));
   }
 }

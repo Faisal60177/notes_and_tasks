@@ -55,7 +55,7 @@ final class TodoLocalDatasourceProvider
 }
 
 String _$todoLocalDatasourceHash() =>
-    r'231c0aedb563c66dbc1e70601f4d4d55f63a31f9';
+    r'ead4ede296797552a3a14369772f3d20fd75d0ab';
 
 @ProviderFor(todoRemoteDatasource)
 final todoRemoteDatasourceProvider = TodoRemoteDatasourceProvider._();
@@ -103,7 +103,7 @@ final class TodoRemoteDatasourceProvider
 }
 
 String _$todoRemoteDatasourceHash() =>
-    r'c40e6bb1aa49175d843607c4e8eabacb067d6117';
+    r'802820d5376df1e01b4bec31d1d2b6ceacbf96b8';
 
 @ProviderFor(todoRepository)
 final todoRepositoryProvider = TodoRepositoryProvider._();
@@ -144,4 +144,4 @@ final class TodoRepositoryProvider
   }
 }
 
-String _$todoRepositoryHash() => r'4617deea48aee3b2ea8a12a4e14101229a96a792';
+String _$todoRepositoryHash() => r'9237599087b01748c65e012cb33f52d2b6866f7d';

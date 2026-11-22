@@ -47,13 +47,14 @@ class NoteModel {
     DateTime? updatedAt,
     bool? isSynced,
     bool? isDeleted,
+    bool clearCategory = false,
   }) {
     return NoteModel(
       id: id,
       title: title ?? this.title,
       content: content ?? this.content,
       color: color ?? this.color,
-      category: category ?? this.category,
+      category: clearCategory ? null : (category ?? this.category),
       isPinned: isPinned ?? this.isPinned,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -99,16 +100,17 @@ class NoteModel {
     'isDeleted': isDeleted,
   };
 
-  factory NoteModel.fromFirestore(String id, Map<String, dynamic> map) => NoteModel(
-    id: id,
-    title: map['title'] as String,
-    content: map['content'] as String?,
-    color: NoteColorX.fromStorage(map['color'] as String?),
-    category: map['category'] as String?,
-    isPinned: map['isPinned'] as bool? ?? false,
-    createdAt: (map['createdAt'] as Timestamp).toDate(),
-    updatedAt: (map['updatedAt'] as Timestamp).toDate(),
-    isSynced: true,
-    isDeleted: map['isDeleted'] as bool? ?? false,
-  );
+  factory NoteModel.fromFirestore(String id, Map<String, dynamic> map) =>
+      NoteModel(
+        id: id,
+        title: map['title'] as String,
+        content: map['content'] as String?,
+        color: NoteColorX.fromStorage(map['color'] as String?),
+        category: map['category'] as String?,
+        isPinned: map['isPinned'] as bool? ?? false,
+        createdAt: (map['createdAt'] as Timestamp).toDate(),
+        updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+        isSynced: true,
+        isDeleted: map['isDeleted'] as bool? ?? false,
+      );
 }

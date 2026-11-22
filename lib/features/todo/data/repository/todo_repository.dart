@@ -18,12 +18,16 @@ class TodoRepository {
     required TodoRemoteDatasource remote,
     required ConnectivityService connectivity,
     required this.isLoggedIn,
-}) : _local = local,
-  _remote = remote,
-  _connectivity = connectivity;
-
+  })  : _local = local,
+        _remote = remote,
+        _connectivity = connectivity;
 
   Future<List<TodoModel>> getTodos() => _local.getAllTodos();
+
+  Future<void> adoptGuestData() async {
+    if (!isLoggedIn) return;
+    await _local.adoptGuestRows();
+  }
 
   Future<void> addTodo({
     required String title,
@@ -31,90 +35,94 @@ class TodoRepository {
     String? category,
     TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
-}) async {
+  }) async {
     final now = DateTime.now();
     final todo = TodoModel(
-        id: const Uuid().v4(),
-        title: title,
-        description: description,
-        category: category,
-        priority: priority,
-        dueDate: dueDate,
-        createdAt: now,
-        updatedAt: now,
-        isSynced: false,
+      id: const Uuid().v4(),
+      title: title,
+      description: description,
+      category: category,
+      priority: priority,
+      dueDate: dueDate,
+      createdAt: now,
+      updatedAt: now,
+      isSynced: false,
     );
     await _local.upsertTodo(todo);
-    unawaited(_pushIfAllowed(todo));
+    unawaited(_push(todo));
   }
-  
+
   Future<void> updateTodo(TodoModel todo) async {
     final updated = todo.copyWith(updatedAt: DateTime.now(), isSynced: false);
     await _local.upsertTodo(updated);
-    unawaited(_pushIfAllowed(updated));
+    unawaited(_push(updated));
   }
 
   Future<void> toggleCompleted(TodoModel todo) =>
       updateTodo(todo.copyWith(isCompleted: !todo.isCompleted));
 
-  Future<void> deleteTodo(TodoModel todo, {
-    Duration undoWindow = const Duration(seconds: 5),
-  }) async {
-    await _local.softDeleteTodo(todo.id, DateTime.now());
+  Future<void> deleteTodo(
+      TodoModel todo, {
+        Duration undoWindow = const Duration(seconds: 5),
+      }) async {
+    final deletedAt = DateTime.now();
+    await _local.softDeleteTodo(todo.id, deletedAt);
+
+    final tombstone =
+    todo.copyWith(isDeleted: true, updatedAt: deletedAt, isSynced: false);
+
     _pendingDeleteTimers[todo.id]?.cancel();
     _pendingDeleteTimers[todo.id] = Timer(undoWindow, () {
-    _pendingDeleteTimers.remove(todo.id);
-    _finalizeDelete(todo.id);
+      _pendingDeleteTimers.remove(todo.id);
+      _finalizeDelete(tombstone);
     });
   }
 
-  Future<void> _finalizeDelete(String id) async {
-    if (isLoggedIn && await _connectivity.isOnline) {
-      try {
-        await _remote.deleteTodo(id);
-      } catch (_) {
-        return;
-      }
-      await _local.deleteTodo(id);
+  Future<void> _finalizeDelete(TodoModel tombstone) async {
+    if (!isLoggedIn) {
+      await _local.deleteTodo(tombstone.id);
+      return;
+    }
+    if (await _push(tombstone)) {
+      await _local.purgeSyncedDeletes();
     }
   }
 
-
-
   Future<void> undoDelete(TodoModel todo) async {
     _pendingDeleteTimers.remove(todo.id)?.cancel();
-    await _local.restoreTodo(todo.id, DateTime.now());
+    final now = DateTime.now();
+    await _local.restoreTodo(todo.id, now);
+    unawaited(
+      _push(todo.copyWith(isDeleted: false, isSynced: false, updatedAt: now)),
+    );
   }
 
-  Future<void> _pushIfAllowed(TodoModel todo) async {
-    if(!isLoggedIn) return;
-    if(await _connectivity.isOnline){
-      try {
-        await _remote.pushTodo(todo);
-        await _local.markSynced(todo.id);
-      } catch (_) {
-      }
+  Future<bool> _push(TodoModel todo) async {
+    if (!isLoggedIn) return false;
+    if (!await _connectivity.isOnline) return false;
+    return _pushOne(todo);
+  }
+
+  Future<bool> _pushOne(TodoModel todo) async {
+    try {
+      await _remote.pushTodo(todo);
+      await _local.markSynced(todo.id, todo.updatedAt);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
   Future<void> syncNow() async {
     if (!isLoggedIn) return;
     if (!await _connectivity.isOnline) return;
+
     final unsynced = await _local.getUnsyncedTodos();
     for (final todo in unsynced) {
-      try {
-        if (todo.isDeleted) {
-          await _remote.deleteTodo(todo.id);
-          await _local.deleteTodo(todo.id);
-        } else {
-          await _remote.pushTodo(todo);
-          await _local.markSynced(todo.id);
-        }
-      } catch (_) {
-        continue;
-      }
+      await _pushOne(todo);
     }
     await _local.purgeSyncedDeletes();
+
     final remoteTodos = await _remote.fetchAllTodos();
     final toApply = await _resolveConflicts(remoteTodos);
     if (toApply.isNotEmpty) await _local.upsertMany(toApply);
@@ -142,13 +150,15 @@ class TodoRepository {
 
   Future<List<TodoModel>> _resolveConflicts(List<TodoModel> remoteTodos) async {
     final localTodos = await _local.getAllTodosIncludingDeleted();
-    final localById = {for (final n in localTodos) n.id: n};
+    final localById = {for (final t in localTodos) t.id: t};
     return [
       for (final r in remoteTodos)
-        if (localById[r.id] == null ||
-            r.updatedAt.isAfter(localById[r.id]!.updatedAt))
-          r,
+        if (_shouldApply(r, localById[r.id])) r,
     ];
   }
 
+  bool _shouldApply(TodoModel remote, TodoModel? local) {
+    if (local == null) return !remote.isDeleted;
+    return remote.updatedAt.isAfter(local.updatedAt);
+  }
 }

@@ -20,6 +20,7 @@ class _AuthPageState extends ConsumerState<AuthPage> with SingleTickerProviderSt
   final _emailUpCtrl = TextEditingController();
   final _passUpCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
 
   bool _showPassIn = false;
   bool _showPassUp = false;
@@ -106,7 +107,6 @@ class _AuthPageState extends ConsumerState<AuthPage> with SingleTickerProviderSt
 
     final authState = ref.read(authProvider);
     if (authState.needsGoogleLinkPassword) {
-      // নতুন — password verify করে Google link করার dialog
       _showLinkPasswordDialog(authState.pendingGoogleEmail ?? '');
     } else if (authState.errorMessage.isNotEmpty) {
       _snack(authState.errorMessage);
@@ -118,6 +118,7 @@ class _AuthPageState extends ConsumerState<AuthPage> with SingleTickerProviderSt
     final passCtrl = TextEditingController();
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Link Google Account'),
@@ -171,7 +172,7 @@ class _AuthPageState extends ConsumerState<AuthPage> with SingleTickerProviderSt
           }),
         ],
       ),
-    );
+    ).whenComplete(passCtrl.dispose);
   }
 
   @override

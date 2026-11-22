@@ -1,13 +1,12 @@
 import 'dart:io';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ConnectivityService {
   final Connectivity _connectivity = Connectivity();
 
-  Stream<bool> get onStatusChange => _connectivity.onConnectivityChanged.map(
-      (results) => !results.contains(ConnectivityResult.none),
-  );
+  Stream<bool> get onStatusChange => _connectivity.onConnectivityChanged.asyncMap(
+      (results) async => !results.contains(ConnectivityResult.none)
+    && await hasActualInternet).distinct();
 
   Future<bool> get isOnline async {
     final result = await _connectivity.checkConnectivity();
@@ -18,9 +17,7 @@ class ConnectivityService {
     try {
       final result = await InternetAddress.lookup('google.com')
           .timeout(const Duration(seconds: 5));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException {
-      return false;
+      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
     } catch (_) {
       return false;
     }
