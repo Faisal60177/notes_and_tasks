@@ -128,7 +128,10 @@ class NoteRepository {
     if (toApply.isNotEmpty) await _local.upsertMany(toApply);
   }
 
+  void Function()? _onChanged;
+
   void startRemoteListener(void Function() onChanged) {
+    _onChanged = onChanged;
     _remoteSub?.cancel();
     if (!isLoggedIn) return;
     _remoteSub = _remote.watchNotes().listen((remoteNotes) async {
