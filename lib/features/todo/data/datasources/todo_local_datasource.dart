@@ -7,6 +7,7 @@ class TodoLocalDatasource {
   TodoLocalDatasource({required this.ownerId});
 
   final String ownerId;
+
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   static const _table = 'todos';
 

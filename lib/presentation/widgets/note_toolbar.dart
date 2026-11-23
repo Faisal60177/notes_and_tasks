@@ -19,7 +19,6 @@ class _NoteToolbarState extends State<NoteToolbar> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Divider(height: 1),
         SizedBox(
           height: 48,
           child: SingleChildScrollView(
@@ -28,7 +27,6 @@ class _NoteToolbarState extends State<NoteToolbar> {
             child: Row(children: _buildToolsForCategory()),
           ),
         ),
-        const Divider(height: 1),
         SizedBox(
           height: 52,
           child: Row(

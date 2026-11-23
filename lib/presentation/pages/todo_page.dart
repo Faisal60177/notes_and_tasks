@@ -35,7 +35,6 @@ class TodoPage extends ConsumerWidget {
               category: category,
               priority: priority,
               dueDate: dueDate,
-              // field খালি করা হলে null হিসেবে সেভ হবে
               clearDescription: description == null,
               clearCategory: category == null,
               clearDueDate: dueDate == null,

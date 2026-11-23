@@ -39,7 +39,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       document: documentFromContent(note?.content),
       selection: const TextSelection.collapsed(offset: 0),
     );
-    _quillController.addListener(_onDocChanged); // লাইভ word-count আপডেটের জন্য
+    _quillController.addListener(_onDocChanged);
     _referenceDate = note?.updatedAt ?? DateTime.now();
     _color = note?.color ?? NoteColor.default_;
     _isPinned = note?.isPinned ?? false;
@@ -78,7 +78,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         content: content,
         color: _color,
         category: category,
-        clearCategory: category == null, // category মুছলে সত্যিই মুছবে
+        clearCategory: category == null,
         isPinned: _isPinned,
       ));
     } else {
@@ -137,6 +137,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         ],
       ),
       body: Column(
+        crossAxisAlignment: .start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -144,13 +145,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               controller: _titleCtrl,
               autofocus: !_isEditing,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none),
+              decoration: const InputDecoration(hintText: 'Title', border: InputBorder.none, isDense:  true,
+                  contentPadding: .zero),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
-              '${DateFormat('MMMM d, h:mm a, EEE').format(_referenceDate)}  •  $_wordCount words',
+              '${DateFormat('MMMM d, h:mm a, EEE').format(_referenceDate)}  |  $_wordCount words',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
             ),
           ),
@@ -160,7 +162,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               controller: _categoryCtrl,
               style: const TextStyle(fontSize: 12, color: Colors.black54),
               decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.label_outline, size: 16),
+                prefixIcon: Icon(Icons.label_outline, size: 12),
                 prefixIconConstraints: BoxConstraints(minWidth: 28, minHeight: 20),
                 hintText: 'Add category',
                 border: InputBorder.none,
@@ -169,7 +171,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               ),
             ),
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 06,),
           Expanded(
             child: QuillEditor(
               focusNode: _editorFocusNode,
@@ -182,7 +184,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               ),
             ),
           ),
-          const Divider(height: 1),
           SafeArea(
             top: false,
             child: Theme(

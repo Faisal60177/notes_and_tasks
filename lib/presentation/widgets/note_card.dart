@@ -5,6 +5,7 @@ import '../utils/note_color_utils.dart';
 import '../utils/quill_utils.dart';
 
 class NoteCard extends StatelessWidget {
+
   final NoteModel note;
   final VoidCallback onTap;
   final VoidCallback onTogglePin;

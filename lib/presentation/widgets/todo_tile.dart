@@ -3,6 +3,7 @@ import 'package:NoteFlow/features/todo/data/models/todo_model.dart';
 import 'priority_badge.dart';
 
 class TodoTile extends StatelessWidget {
+
   final TodoModel todo;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
