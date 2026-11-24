@@ -34,7 +34,27 @@ class MyApp extends StatelessWidget{
 
       title: 'NoteFlow',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFFB300),
+          brightness: Brightness.light,
+        ).copyWith(
+          surface: const Color(0xFFFAFAF7),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFFAFAF7),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFFB300),
+          brightness: Brightness.dark,
+        ).copyWith(
+          surface: const Color(0xFF1A1A1A),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF1A1A1A),
+      ),
+      themeMode: ThemeMode.system,
       home: const HomeShell(),
     );
   }

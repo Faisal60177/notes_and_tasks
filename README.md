@@ -10,8 +10,11 @@ Every action writes to a local SQLite database first, so the app is instant and 
 ![SQLite](https://img.shields.io/badge/SQLite-sqflite-003B57?logo=sqlite&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?logo=firebase&logoColor=black)
 
-<!-- Add a screenshot strip: ![NoteFlow screenshots](docs/screenshots/banner.png) -->
+## Screenshots
 
+| Notes (light) | Note editor | Tasks | Profile | Dark mode |
+|---|---|---|---|---|
+| <img src="docs/screenshots/notes.png" width="180"/> | <img src="docs/screenshots/editor.png" width="180"/> | <img src="docs/screenshots/tasks.png" width="180"/> | <img src="docs/screenshots/profile.png" width="180"/> | <img src="docs/screenshots/dark.png" width="180"/> |
 ---
 
 ## Contents
@@ -343,6 +346,7 @@ Data of a signed-out account stays on the device (hidden from the app) until the
 **Mohammad Faisal**
 Flutter Mobile App Developer
 
-[GitHub](https://github.com/Faisal60177) · [Google Play](https://play.google.com/store/apps/developer?id=Siratal+Mustaqeem)
+[GitHub](https://github.com/Faisal60177) · [LinkedIn](https://www.linkedin.com/in/mohammad-faisal-7b65ab3b6) · [Portfolio](https://mohammad-faisal.vercel.app/) · [Google Play](https://play.google.com/store/apps/developer?id=Siratal+Mustaqeem)
+## License
 
-This project is for learning and portfolio use. Add a `LICENSE` file of your choice (MIT is a common default).
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
